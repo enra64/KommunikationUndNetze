@@ -3,6 +3,7 @@
 #include <cnaiapi.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <netinet/in.h>
 
 int main(int argc, char *argv[])
 {
@@ -31,5 +32,18 @@ int main(int argc, char *argv[])
     printf("no connection established\n");
   else
     printf("connection established, connection id: %i\n", clientConnection);
+
+  char receivingBuffer[1024];
+  int receiveLength = 0;
+  while(1){
+    // check network for input
+    while((receiveLength = read(clientConnection, receivingBuffer, sizeof(receivingBuffer) - 1)) > 0){
+      // force string end      
+      receivingBuffer[receiveLength] = 0;
+
+      // fputs(receivingBuffer, stdout)
+      write(clientConnection, receivingBuffer, receiveLength);
+    }
+  }
 	return 0;
 }
