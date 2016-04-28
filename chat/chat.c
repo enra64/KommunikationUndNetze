@@ -29,8 +29,11 @@ void echo(int fdIn, int fdOut){
 // handle ^C by ending contact
 void sig_handler(int signal){
   if(signal == SIGINT){
-    printf("\nReceived SIGINT, closing connection\n");
-    end_contact(network);
+    printf("\nReceived SIGINT, connection ");
+    if(end_contact(network) == 0)
+      printf("successfully closed\n");
+    else
+      printf("could not be closed\n");
     exit(0);
   }
   else
@@ -47,8 +50,10 @@ void echoing(){
   // echoing function
   while(1){
     // abort on polling error
-	  if(poll(pollStructs, 2, -1) < 0)
-	    break;
+	  if(poll(pollStructs, 2, -1) < 0){
+	    printf("Polling error, terminating.");
+      exit(0);
+    }
     // which fd has input?
     if(pollStructs[0].revents & POLLIN)
       echo(0, network);
@@ -104,9 +109,9 @@ int main(int argc, char *argv[])
   
   // handle ^C
   if (signal(SIGINT, sig_handler) == SIG_ERR)
-    printf("\ncan't catch SIGINT\n");
+    printf("\nCan't catch SIGINT\n");
   
-  // just echo from stdin to network and vice versa if a connection exists
+  // network ok, start chat method
   if(network != -1)
     echoing();
   return 0;
