@@ -10,7 +10,7 @@ CFLAGS  += -Wall -g -Iinclude
 LDFLAGS += -Llib
 LDLIBS  += -lcnaiapi$(ARCH64) -lpthread
 
-APPS = echoclient echoserver
+APPS = chat
 
 apps: $(APPS)
 
