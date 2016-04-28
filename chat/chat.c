@@ -9,40 +9,38 @@
 // buffer for everything
 char buffer[1024];
 
-int myPoll(int fd){
-  if(fd < 0)
-    return 0;
-  struct pollfd pollStruct;
-  pollStruct.fd = fd;
-  pollStruct.events = POLLIN;
-  //wait a millisecond on one fd
-  poll(&pollStruct, 1, 1);
-  
-  if(pollStruct.revents == POLLIN)
-    return 1;
-  return 0;
-}
-
+// if this function is called without input, it blocks
+// until input is received
 void echo(int fdIn, int fdOut){
   size_t receiveLength = 0;
-  // check whether input exists
-  if(myPoll(fdIn)){
-    // read from input
-    receiveLength = 
+  // read from input
+  receiveLength = 
     read(fdIn, buffer, sizeof(buffer));
 
-    // force terminate string
-    buffer[receiveLength] = 0;
+  // force terminate string
+  buffer[receiveLength] = 0;
 
-    // write to output
-    write(fdOut, buffer, receiveLength);
-  }
+  // write to output
+  write(fdOut, buffer, receiveLength);
 }
 
+// blocking function
 void echoing(connection network){
+  // polling structs
+  struct pollfd pollStructs[2] = {
+    {0, POLLIN, 0}, // poll stdin
+    {network, POLLIN, 0}}; // poll network
+  
+  // echoing function
   while(1){
-    echo(0, network);
-    echo(network, 0);
+    // abort on polling error
+	  if(poll(pollStructs, 2, -1) < 0)
+	    break;
+    // which fd has input?
+    if(pollStructs[0].revents & POLLIN)
+      echo(0, network);
+    else
+      echo(network, 0);
   }
 }
 
