@@ -11,6 +11,10 @@ char buffer[1024];
 // network file descriptor
 connection network;
 
+// dont know what this is
+computer host;
+appnum port;
+
 // if this function is called without input, it blocks
 // until input is received
 void echo(int fdIn, int fdOut){
@@ -26,14 +30,18 @@ void echo(int fdIn, int fdOut){
   write(fdOut, buffer, receiveLength);
 }
 
+void closeNetwork(){
+    if(end_contact(network) == 0)
+      printf("connection successfully closed\n");
+    else
+      printf("connection could not be closed\n");
+}
+
 // handle ^C by ending contact
 void sig_handler(int signal){
   if(signal == SIGINT){
-    printf("\nReceived SIGINT, connection ");
-    if(end_contact(network) == 0)
-      printf("successfully closed\n");
-    else
-      printf("could not be closed\n");
+    printf("\nReceived SIGINT, ");
+    closeNetwork();
     exit(0);
   }
   else
@@ -51,7 +59,8 @@ void echoing(){
   while(1){
     // abort on polling error
 	  if(poll(pollStructs, 2, -1) < 0){
-	    printf("Polling error, terminating.");
+	    printf("Polling error, terminating. ");
+	    closeNetwork();
       exit(0);
     }
     // which fd has input?
@@ -62,50 +71,70 @@ void echoing(){
   }
 }
 
+void server(){
+  printf("Server started and waiting for incoming connection.\n");
+  // wait for connection
+  network = await_contact(port);
+  
+  //react
+  if(network == -1)
+    printf("No client found within timeout\n");
+  else
+    printf("Client connected, id: %i\n", network);
+}
+
+
+void client(){
+  if(host == -1){
+    printf("Bad host entered, try localhost\n");
+    exit(0);
+  }
+
+  // try to contact a server
+  network = make_contact(host, port);
+
+  // check connection
+  if(network == -1)
+    server();
+  else
+    printf("Server found, id: %i\n", network);
+}
+
 int main(int argc, char *argv[])
 {
-  // valid input?
-  if(argc <= 2){
-    printf("usage: echoclient <computername> <appnum>\n");
-    return 0;
+  int isServer, portArgumentIndex;
+  // decide on usage mode
+  switch(argc){
+    // no host argument provided
+    case 2:
+      isServer = 1;
+      portArgumentIndex = 1;
+      break;
+    // host arg provided, try to find a server
+    case 3:
+      isServer = 0;
+      portArgumentIndex = 2;
+      break;
+    // unknown argument number
+    default:
+      printf("Unknown Argumnt number %i\n", argc);
+      printf("Client/Server usage: chat <host> <port>\n");
+      printf("Server usage: chat <port>\n");
+      return 0;
   }
+  
+  // get port
+  port = atoi(argv[portArgumentIndex]);
 
-  // this is the host - ip for example. looks strange, is aber so.
-  computer serverComputer;
-  // application number - this directly translates to port.
-  appnum applicationIdentifier;
-
-  // get server name
-  serverComputer = cname_to_comp(argv[1]);
-
-  if(serverComputer == -1){
-    printf("Bad host entered, try localhost\n");
-    return 0;
-  }
-
-  // get application id
-  applicationIdentifier = atoi(argv[2]);
-
-  //try to contact the server
-  network = make_contact(
-                        serverComputer, 
-                        applicationIdentifier);
-
-  // check connection validity
-  if(network == -1){
-    printf("Could not connect, starting server\n");
-    // wait for connection
-    network = await_contact(applicationIdentifier);
-    
-    //react
-    if(network == -1)
-      printf("No client found within timeout\n");
-    else
-      printf("Client connected, id: %i\n", network);
-  }
+  // run in server or client mode?
+  if(isServer)
+    server();
   else{
-    printf("Server found, id: %i\n", network);
+    // get host
+    host = cname_to_comp(argv[1]);
+    client();
   }
+  
   
   // handle ^C
   if (signal(SIGINT, sig_handler) == SIG_ERR)
