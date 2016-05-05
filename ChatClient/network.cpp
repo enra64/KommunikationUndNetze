@@ -10,13 +10,21 @@ void Network::closeNetwork(){
       mChatWindow->notify("connection successfully closed\n");
     else
       mChatWindow->error("connection could not be closed\n");
+
+    // reset member variables
+    mZeroLengthMsgCount = 0;
+    mNetwork = -1;
+    mPort = -1;
+    mHost = -1;
+
+    // follow up with ui
+    mChatWindow->setSendingUiEnabled(false);
+    mChatWindow->setConnectionUiEnabled(true);
 }
 
 void Network::send(const QString msg){
-    char* msgBuffer = msg.toLatin1().data();
-
     // write to output
-    write(mNetwork, msgBuffer, msg.length());
+    write(mNetwork, msg.toLatin1().data(), msg.length());
 }
 
 void Network::pollingRead(){
@@ -28,15 +36,26 @@ void Network::pollingRead(){
         mChatWindow->error("Polling error, terminating.");
         closeNetwork();
     }
-    if(pollStructs[0].revents & POLLIN)
-      mChatWindow->print(networkToString());
+    if(pollStructs[0].revents & POLLIN){
+        QString msg("");
+        if(networkToString(msg) != 0)
+            mChatWindow->print(msg);
+        else
+            mZeroLengthMsgCount++;
+    }
+
+    if(mZeroLengthMsgCount > 100){
+        mChatWindow->error("Your peer seems to have closed the connection!");
+        closeNetwork();
+    }
 }
 
-QString Network::networkToString(){
+size_t Network::networkToString(QString& msg){
     size_t receiveLength;
     receiveLength = read(mNetwork, mBuffer, sizeof(mBuffer));
     mBuffer[receiveLength] = 0;
-    return QString(mBuffer);
+    msg.append(mBuffer);
+    return receiveLength;
 }
 
 connection Network::waitAsServer(){

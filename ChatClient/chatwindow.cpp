@@ -8,6 +8,7 @@ ChatWindow::ChatWindow(QWidget *parent) :
     ui->setupUi(this);
     mNetwork = new Network(this);
     setSendingUiEnabled(false);
+    setConnectionUiEnabled(true);
 }
 
 ChatWindow::~ChatWindow()
@@ -31,6 +32,7 @@ void ChatWindow::error(QString output){
 
 void ChatWindow::connectionStatus(bool connectionOk){
     setSendingUiEnabled(connectionOk);
+    setConnectionUiEnabled(!connectionOk);
     mTimer = new QTimer(this);
     QObject::connect(
                 mTimer,
@@ -45,7 +47,8 @@ void ChatWindow::checkNetwork(){
 }
 
 void ChatWindow::setSendingUiEnabled(bool enable){
-    ui->sendButton->setEnabled(enable);
+    const bool hasText = !ui->sendText->text().isEmpty();
+    ui->sendButton->setEnabled(enable && hasText);
     ui->sendText->setEnabled(enable);
 }
 

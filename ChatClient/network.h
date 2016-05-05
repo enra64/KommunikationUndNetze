@@ -25,12 +25,13 @@ private:
     QFutureWatcher<connection> mServerWaitWatcher;
     connection waitAsServer();
     bool parsePort(const QString port);
-    QString networkToString();
+    size_t networkToString(QString& msg);
     appnum mPort;
     computer mHost;
     connection mNetwork;
     char mBuffer[1024];
     ChatWindow* mChatWindow;
+    int mZeroLengthMsgCount = 0;
 public slots:
     void pollingRead();
     void handleServerWaitFinished();

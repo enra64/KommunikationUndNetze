@@ -21,12 +21,12 @@ public:
     void error(QString errorDescription);
     void notify(QString msg);
     void connectionStatus(bool connectionOk);
+    void setSendingUiEnabled(bool enable);
+    void setConnectionUiEnabled(bool enable);
 
 private:
     Ui::ChatWindow *ui;
     Network* mNetwork;
-    void setSendingUiEnabled(bool enable);
-    void setConnectionUiEnabled(bool enable);
     void closeEvent(QCloseEvent *bar);
     QTimer* mTimer;
 public slots:
