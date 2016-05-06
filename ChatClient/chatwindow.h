@@ -29,8 +29,6 @@ private:
     Network* mNetwork;
     void closeEvent(QCloseEvent *bar);
     QTimer* mTimer;
-public slots:
-    void checkNetwork();
 private slots:
     void on_sendButton_clicked();
     void on_clientConnectButton_clicked();

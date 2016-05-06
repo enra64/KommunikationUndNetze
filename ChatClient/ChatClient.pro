@@ -14,11 +14,13 @@ TEMPLATE = app
 
 SOURCES += main.cpp\
         chatwindow.cpp \
-    network.cpp
+    network.cpp \
+    lownetwork.cpp
 
 HEADERS  += chatwindow.h \
     network.h \
-    cnaiapi.h
+    cnaiapi.h \
+    lownetwork.h
 
 LIBS += -L"$$_PRO_FILE_PWD_/" -lcnaiapi64
 

@@ -18,6 +18,7 @@ void Network::closeNetwork(){
     mHost = -1;
 
     // follow up with ui
+    mChatWindow->connectionStatus(false);
     mChatWindow->setSendingUiEnabled(false);
     mChatWindow->setConnectionUiEnabled(true);
 }
@@ -97,7 +98,7 @@ bool Network::parsePort(const QString port){
     mPort = port.toInt(&portIsInt);
 
     if(!portIsInt)
-        mChatWindow->error("Port is not an integer!");
+        mChatWindow->error("Port does not look very integer-y?");
     return portIsInt;
 }
 

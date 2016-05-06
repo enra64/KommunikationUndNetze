@@ -33,17 +33,17 @@ void ChatWindow::error(QString output){
 void ChatWindow::connectionStatus(bool connectionOk){
     setSendingUiEnabled(connectionOk);
     setConnectionUiEnabled(!connectionOk);
-    mTimer = new QTimer(this);
-    QObject::connect(
-                mTimer,
-                SIGNAL(timeout()),
-                mNetwork,
-                SLOT(pollingRead()));
-    mTimer->start(4);
-}
-
-void ChatWindow::checkNetwork(){
-    mNetwork->pollingRead();
+    if(connectionOk){
+        mTimer = new QTimer(this);
+        QObject::connect(
+                    mTimer,
+                    SIGNAL(timeout()),
+                    mNetwork,
+                    SLOT(pollingRead()));
+        mTimer->start(4);
+    }
+    else
+        QObject::disconnect(mTimer, SIGNAL(timeout()), mNetwork, SLOT(pollingRead()));
 }
 
 void ChatWindow::setSendingUiEnabled(bool enable){
