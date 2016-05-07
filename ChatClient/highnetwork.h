@@ -26,14 +26,14 @@ public:
     int server(const QString port) override;
     int client(const QString host, const QString port) override;
 private:
-    QFutureWatcher<connection> mServerWaitWatcher;
     int mZeroLengthMsgCount = 0;
     connection waitAsServer();
     connection mNetwork;
     computer mHost;
     appnum mPort;
-public slots:
-    void handleServerWaitFinished();
+protected slots:
+    void onAccept() override;
+    int waitForClients(struct sockaddr* clientStruct) override;
 };
 
 #endif // HIGHNETWORK_H

@@ -27,6 +27,9 @@ public:
     size_t receive(std::vector<Message>& msg) override;
     int server(const QString port) override;
     int client(const QString host, const QString port) override;
+protected slots:
+    void onAccept() override;
+    int waitForClients(struct sockaddr* clientStruct) override;
 private:
     short mPort;
     bool mIsServer;
@@ -34,11 +37,7 @@ private:
     int mServerSocketHandle;
     int scheduleWaitingForClients();
     std::vector<int>* mClientSocketHandles;
-    QFutureWatcher<int> mServerWaitWatcher;
     bool getHostAddress(const QString hostName, unsigned long& hostInt);
-private slots:
-    void onAccept();
-    int waitForClients(struct sockaddr* clientStruct);
 };
 
 #endif // LOWNETWORK_H

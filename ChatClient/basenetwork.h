@@ -24,11 +24,13 @@ public:
     virtual int client(const QString host, const QString port);
 signals:
     void clientConnected(bool success);
-public slots:
-
+protected slots:
+    virtual void onAccept();
+    virtual int waitForClients(struct sockaddr* clientStruct);
 protected:
     QString networkToString(int fd, size_t& receiveLength);
     bool parsePort(const QString port, short& shortPort);
+    QFutureWatcher<int> mServerWaitWatcher;
     int mZeroLengthMsgCount = 0;
     char mBuffer[1024];
 };

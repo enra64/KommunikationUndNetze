@@ -47,12 +47,12 @@ size_t HighNetwork::receive(std::vector<Message>& msg) {
     return 0;
 }
 
-connection HighNetwork::waitAsServer(){
+int HighNetwork::waitForClients(struct sockaddr*){
     // wait for connection
     return await_contact(mPort);
 }
 
-void HighNetwork::handleServerWaitFinished(){
+void HighNetwork::onAccept(){
     mNetwork = mServerWaitWatcher.result();
     clientConnected(mNetwork >= 0);
 }
@@ -61,16 +61,10 @@ int HighNetwork::server(const QString port) {
     if(!parsePort(port, mPort))
         return -1;
 
-    QObject::connect(
-                &mServerWaitWatcher,
-                SIGNAL(finished()),
-                this,
-                SLOT(handleServerWaitFinished()));
-
-    //TODO: somehow include a callback to the ui
+    mServerWaitWatcher.cancel();
 
     // start connection in concurrent thread
-    QFuture<connection> future = QtConcurrent::run(this, &HighNetwork::waitAsServer);
+    QFuture<connection> future = QtConcurrent::run(this, &HighNetwork::waitForClients, nullptr);
 
     mServerWaitWatcher.setFuture(future);
 

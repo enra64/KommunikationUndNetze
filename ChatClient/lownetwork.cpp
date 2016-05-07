@@ -2,12 +2,6 @@
 
 LowNetwork::LowNetwork(QObject *parent) : BaseNetwork(parent){
     mClientSocketHandles = new std::vector<int>();
-
-    QObject::connect(
-                &mServerWaitWatcher,
-                SIGNAL(finished()),
-                this,
-                SLOT(onAccept()));
 }
 
 LowNetwork::~LowNetwork(){
@@ -78,10 +72,8 @@ int LowNetwork::closeNetwork(){
             if(close(fd) < 0)
                 errorCount--;
     }
-    else{
-        if(close(mServerSocketHandle) < 0)
-            errorCount--;
-    }
+    if(close(mServerSocketHandle) < 0)
+        errorCount--;
 
     mAdress = -1;
     mPort = -1;
@@ -89,6 +81,8 @@ int LowNetwork::closeNetwork(){
     mClientSocketHandles->clear();
 
     mServerWaitWatcher.cancel();
+
+    mServerWaitWatcher.waitForFinished();
 
     return errorCount;
 }

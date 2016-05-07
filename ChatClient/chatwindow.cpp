@@ -10,7 +10,7 @@ ChatWindow::ChatWindow(QWidget *parent) :
     // CHANGE BOTH
     mIsLowNetwork = false;
     mNetwork = new LowNetwork(this);
-    QObjectCleanupHandler::connect(mNetwork, SIGNAL(clientConnected(bool)), this, SLOT(onClientConnected(bool)));
+    QObject::connect(mNetwork, SIGNAL(clientConnected(bool)), this, SLOT(onClientConnected(bool)));
 
     setSendingUiEnabled(false);
     setConnectionUiEnabled(true);
@@ -82,7 +82,7 @@ void ChatWindow::setConnectionUiEnabled(bool enable){
 void ChatWindow::closeNetworkWithUi()
 {
     connectionStatus(false);
-    if(mNetwork->closeNetwork() < 0)
+    if(mNetwork->closeNetwork() >= 0)
         print("Closed network successfully");
     else
         print("Could not close network");

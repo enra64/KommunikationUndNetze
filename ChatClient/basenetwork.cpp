@@ -2,7 +2,11 @@
 
 BaseNetwork::BaseNetwork(QObject *parent) : QObject(parent)
 {
-
+    QObject::connect(
+                &mServerWaitWatcher,
+                SIGNAL(finished()),
+                this,
+                SLOT(onAccept()));
 }
 
 bool BaseNetwork::parsePort(const QString port, short& shortPort){
@@ -15,6 +19,13 @@ QString BaseNetwork::networkToString(int fd, size_t& rLength){
     rLength = read(fd, mBuffer, sizeof(mBuffer));
     mBuffer[rLength] = '\0';
     return QString(mBuffer);
+}
+
+int BaseNetwork::waitForClients(struct sockaddr*){
+    return -1234;
+}
+
+void BaseNetwork::onAccept(){
 }
 
 // dont ask me why this shit compiles
