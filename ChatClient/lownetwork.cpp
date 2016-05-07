@@ -1,6 +1,6 @@
 #include "lownetwork.h"
 
-LowNetwork::LowNetwork(){
+LowNetwork::LowNetwork(ChatWindow *cw) : NetworkBase(cw){
     mClientSocketHandles = new std::vector<int>();
 }
 
@@ -9,36 +9,38 @@ LowNetwork::~LowNetwork(){
 }
 
 size_t LowNetwork::receive(std::vector<QString>& msg){
-    if(isServer){
+    if(mIsServer){
         struct pollfd structs[mClientSocketHandles->size()];
-        for(int i = 0; i < mClientSocketHandles->size(); i++)
-            structs[i] = {mClientSocketHandles[i], POLLIN, 0};
+        for(size_t i = 0; i < mClientSocketHandles->size(); i++){
+            structs[i].fd = mClientSocketHandles->at(i);
+            structs[i].events = POLLIN;
+            structs[i].revents = 0;
+        }
         if(poll(structs, mClientSocketHandles->size(), 2) < 0){
             closeNetwork();
             return -1;
         }
         msg.resize(mClientSocketHandles->size());
         int receiveCount = 0;
-        for(int i = 0; i < mClientSocketHandles->size(); i++){
-            if(pollStructs[i].revents & POLLIN){
+        for(size_t i = 0; i < mClientSocketHandles->size(); i++){
+            if(structs[i].revents & POLLIN){
                 receiveCount++;
                 size_t readLength;
-                msg[i] = networkToString(pollStructs[i].fd, readLength);
+                msg[i] = networkToString(structs[i].fd, readLength);
             }
         }
         return receiveCount;
     }
     //isClient
     else{
-        struct pollfd pollingStruct[1];
-        pollingStruct[0] = {{mServerSocketHandle, POLLIN, 0}};
+        struct pollfd pollingStruct[1] = {{mServerSocketHandle, POLLIN, 0}};
         if(poll(pollingStruct, 1, 2) < 0){
             closeNetwork();
             return -1;
         }
-        if(pollStructs[0].revents & POLLIN){
+        if(pollingStruct[0].revents & POLLIN){
             size_t readLength;
-            msg[i] = networkToString(pollStructs[0].fd, readLength);
+            msg.push_back(networkToString(pollingStruct[0].fd, readLength));
             return 1;
         }
         return 0;
@@ -47,9 +49,9 @@ size_t LowNetwork::receive(std::vector<QString>& msg){
 
 int LowNetwork::send(const QString msg){
     char* msgData = msg.toLatin1().data();
-    size_t sentData;
+    int sentData;
     if(mIsServer){
-        for(int fd : mClientSocketHandles){
+        for(int fd : *mClientSocketHandles){
             sentData = write(fd, msgData, msg.length());
             if(sentData != msg.length())
                 return -1;
@@ -64,14 +66,23 @@ int LowNetwork::send(const QString msg){
 }
 
 int LowNetwork::closeNetwork(){
-    for(int fd : mClientSocketHandles)
-        close(fd);
-    close(mServerSocketHandle);
+    int errorCount = 0;
+    if(mIsServer){
+        for(int fd : *mClientSocketHandles)
+            if(close(fd) < 0)
+                errorCount--;
+    }
+    else{
+        if(close(mServerSocketHandle) < 0)
+            errorCount--;
+    }
 
     mAdress = -1;
     mPort = -1;
     mServerSocketHandle = -1;
     mClientSocketHandles->clear();
+
+    return errorCount;
 }
 
 int LowNetwork::server(const QString port){
@@ -128,7 +139,7 @@ int LowNetwork::client(const QString host, const QString port){
     peerDescription.sin_port = htons(shortport);
     peerDescription.sin_addr.s_addr = mAdress;
 
-    if(connect(mServerSocketHandle, (struct sockaddr *) &peerDescription, sizeof(peerDescription)) < 0)
+    if(Connector::myConnect(mServerSocketHandle, (struct sockaddr *) &peerDescription, sizeof(peerDescription)) < 0)
         return -4;
 
     mIsServer = false;

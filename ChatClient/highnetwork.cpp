@@ -1,6 +1,10 @@
 #include "highnetwork.h"
 
-void HighNetwork::closeNetwork(){
+HighNetwork::HighNetwork(ChatWindow *cw){
+    mChatWindow = cw;
+}
+
+void HighNetwork::closeNetwork() override {
     if(end_contact(mNetwork) == 0)
       mChatWindow->notify("connection successfully closed\n");
     else
@@ -18,12 +22,12 @@ void HighNetwork::closeNetwork(){
     mChatWindow->setConnectionUiEnabled(true);
 }
 
-void HighNetwork::send(const QString msg){
+void HighNetwork::send(const QString msg) override {
     // write to output
     write(mNetwork, msg.toLatin1().data(), msg.length());
 }
 
-size_t HighNetwork::receive(std::vector<QString>& msg){
+size_t HighNetwork::receive(std::vector<QString>& msg) override {
     // polling structs
     struct pollfd pollStructs[1] = {{mNetwork, POLLIN, 0}}; // poll network
     if(poll(pollStructs, 1, 2) < 0){
@@ -63,7 +67,7 @@ void HighNetwork::handleServerWaitFinished(){
         mChatWindow->notify("A Client connected!");
 }
 
-int HighNetwork::server(const QString port){
+int HighNetwork::server(const QString port) override {
     if(!parsePort(port))
         return;
 
@@ -83,7 +87,7 @@ int HighNetwork::server(const QString port){
     return 0;
 }
 
-int HighNetwork::client(const QString host, const QString port){
+int HighNetwork::client(const QString host, const QString port) override {
     if(!parsePort(port)) return;
 
     mHost = cname_to_comp(host.toLatin1().data());

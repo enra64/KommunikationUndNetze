@@ -1,8 +1,8 @@
 #ifndef NETWORKBASE_H
 #define NETWORKBASE_H
 
+class ChatWindow;
 #include "chatwindow.h"
-#include "cnaiapi.h"
 #include <netinet/in.h>
 #include <poll.h>
 #include <QString>
@@ -10,10 +10,11 @@
 #include <stdio.h>
 #include <string.h>
 
-class NetworkBase
+class NetworkBase : public QObject
 {
+    Q_OBJECT
 public:
-    NetworkBase(ChatWindow& cw);
+    NetworkBase(ChatWindow* cw);
     virtual int closeNetwork();
     virtual size_t receive(std::vector<QString>& msg);
     virtual int send(const QString msg);

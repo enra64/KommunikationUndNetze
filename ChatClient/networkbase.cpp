@@ -1,6 +1,6 @@
 #include "networkbase.h"
 
-NetworkBase::NetworkBase(ChatWindow &cw)
+NetworkBase::NetworkBase(ChatWindow *cw)
 {
     mChatWindow = cw;
 }
