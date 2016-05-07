@@ -1,6 +1,6 @@
 #include "lownetwork.h"
 
-LowNetwork::LowNetwork(ChatWindow *cw) : NetworkBase(cw){
+LowNetwork::LowNetwork(){
     mClientSocketHandles = new std::vector<int>();
 }
 

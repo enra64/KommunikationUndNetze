@@ -1,36 +1,39 @@
 #ifndef HIGHNETWORK_H
 #define HIGHNETWORK_H
 
+#include <QtConcurrent/QtConcurrent>
+#include <QString>
 #include <QObject>
+
 #include "cnaiapi.h"
-#include "chatwindow.h"
+
 #include <netinet/in.h>
 #include <poll.h>
-#include <QString>
-#include <QtConcurrent/QtConcurrent>
+
 #include <stdio.h>
 #include <string.h>
+
 #include "networkbase.h"
 
 class HighNetwork: public NetworkBase
 {
     Q_OBJECT
 public:
-    HighNetwork(ChatWindow* cw);
-    int send(const QString msg) override;
-    size_t receive(std::vector<QString>& msg) override;
-    int closeNetwork() override;
-    int server(const QString port) override;
-    int client(const QString host, const QString port) override;
+    HighNetwork();
+    int send(const QString msg);
+    size_t receive(std::vector<QString>& msg);
+    int closeNetwork();
+    int server(const QString port);
+    int client(const QString host, const QString port);
 private:
     QFutureWatcher<connection> mServerWaitWatcher;
-    bool parsePort(const QString port);
     int mZeroLengthMsgCount = 0;
     connection waitAsServer();
-    ChatWindow* mChatWindow;
     connection mNetwork;
     computer mHost;
     appnum mPort;
+public slots:
+    void handleServerWaitFinished();
 };
 
 #endif // HIGHNETWORK_H

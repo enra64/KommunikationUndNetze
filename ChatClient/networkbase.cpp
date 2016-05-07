@@ -1,13 +1,12 @@
 #include "networkbase.h"
 
-NetworkBase::NetworkBase(ChatWindow *cw)
-{
-    mChatWindow = cw;
+NetworkBase::NetworkBase(){
+
 }
 
-bool NetworkBase::parsePort(const QString port){
+bool NetworkBase::parsePort(const QString port, short& shortPort){
     bool portIsInt;
-    mPort = port.toInt(&portIsInt);
+    shortPort = port.toInt(&portIsInt);
     return portIsInt;
 }
 

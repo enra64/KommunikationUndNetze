@@ -3,18 +3,23 @@
 
 #include <QObject>
 #include <QString>
+
 #include <arpa/inet.h>
 #include <netdb.h>          /* hostent struct, gethostbyname() */
 #include <netinet/in.h>
 #include <sys/socket.h>
+
 #include <stdio.h>
+
 #include "compilerdistractor.h"
+
 #include "networkbase.h"
 
 class LowNetwork : public NetworkBase
 {
+        Q_OBJECT
 public:
-    LowNetwork(ChatWindow* cw);
+    LowNetwork();
     ~LowNetwork();
     int closeNetwork() override;
     int send(const QString msg) override;

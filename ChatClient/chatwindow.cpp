@@ -6,7 +6,7 @@ ChatWindow::ChatWindow(QWidget *parent) :
     ui(new Ui::ChatWindow)
 {
     ui->setupUi(this);
-    mNetwork = new HighNetwork(this);
+    mNetwork = new HighNetwork();
     setSendingUiEnabled(false);
     setConnectionUiEnabled(true);
 }

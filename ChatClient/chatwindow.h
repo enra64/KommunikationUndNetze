@@ -3,10 +3,11 @@
 
 #include <QMainWindow>
 #include <QCloseEvent>
-class NetworkBase;
-#include "networkbase.h"
+
 #include "highnetwork.h"
 #include "lownetwork.h"
+#include "networkbase.h"
+
 
 namespace Ui {
 class ChatWindow;

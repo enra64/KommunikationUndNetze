@@ -1,14 +1,10 @@
 #include "highnetwork.h"
 
-HighNetwork::HighNetwork(ChatWindow *cw){
-    mChatWindow = cw;
+HighNetwork::HighNetwork(){
 }
 
-void HighNetwork::closeNetwork() override {
-    if(end_contact(mNetwork) == 0)
-      mChatWindow->notify("connection successfully closed\n");
-    else
-      mChatWindow->error("connection could not be closed\n");
+int HighNetwork::closeNetwork() {
+    int ret = end_contact(mNetwork);
 
     // reset member variables
     mZeroLengthMsgCount = 0;
@@ -16,39 +12,46 @@ void HighNetwork::closeNetwork() override {
     mPort = -1;
     mHost = -1;
 
+
     // follow up with ui
-    mChatWindow->connectionStatus(false);
-    mChatWindow->setSendingUiEnabled(false);
-    mChatWindow->setConnectionUiEnabled(true);
+//    mChatWindow->connectionStatus(false);
+//    mChatWindow->setSendingUiEnabled(false);
+//    mChatWindow->setConnectionUiEnabled(true);
+
+    return ret;
 }
 
-void HighNetwork::send(const QString msg) override {
+int HighNetwork::send(const QString msg) {
     // write to output
-    write(mNetwork, msg.toLatin1().data(), msg.length());
+    int written = write(mNetwork, msg.toLatin1().data(), msg.length());
+    if(written != msg.length())
+        return -1;
+    return 0;
 }
 
-size_t HighNetwork::receive(std::vector<QString>& msg) override {
+size_t HighNetwork::receive(std::vector<QString>& msg) {
     // polling structs
     struct pollfd pollStructs[1] = {{mNetwork, POLLIN, 0}}; // poll network
     if(poll(pollStructs, 1, 2) < 0){
-        mChatWindow->error("Polling error, terminating.");
-        closeNetwork();
+        if(closeNetwork() < 0)
+            return -2;
+        return -1;
     }
     if(pollStructs[0].revents & POLLIN){
         size_t readLength;
         QString mess = networkToString(pollStructs[0].fd, readLength);
         if(readLength != 0){
             msg.push_back(mess);
-            mChatWindow->print(msg);
         }
         else
             mZeroLengthMsgCount++;
     }
 
     if(mZeroLengthMsgCount > 100){
-        mChatWindow->error("Your peer seems to have closed the connection!");
         closeNetwork();
+        return -3;
     }
+    return 0;
 }
 
 connection HighNetwork::waitAsServer(){
@@ -58,18 +61,11 @@ connection HighNetwork::waitAsServer(){
 
 void HighNetwork::handleServerWaitFinished(){
     mNetwork = mServerWaitWatcher.result();
-
-    mChatWindow->connectionStatus(mNetwork != -1);
-
-    if(mNetwork == -1)
-        mChatWindow->error("No client found within timeout!");
-    else
-        mChatWindow->notify("A Client connected!");
 }
 
-int HighNetwork::server(const QString port) override {
-    if(!parsePort(port))
-        return;
+int HighNetwork::server(const QString port) {
+    if(!parsePort(port, mPort))
+        return -1;
 
     QObject::connect(
                 &mServerWaitWatcher,
@@ -77,33 +73,25 @@ int HighNetwork::server(const QString port) override {
                 this,
                 SLOT(handleServerWaitFinished()));
 
-    // notify user
-    mChatWindow->notify("Waiting for connection...");
+    //TODO: somehow include a callback to the ui
+
     // start connection in concurrent thread
-    QFuture<connection> future = QtConcurrent::run(this, &Network::waitAsServer);
+    QFuture<connection> future = QtConcurrent::run(this, &HighNetwork::waitAsServer);
 
     mServerWaitWatcher.setFuture(future);
 
     return 0;
 }
 
-int HighNetwork::client(const QString host, const QString port) override {
-    if(!parsePort(port)) return;
+int HighNetwork::client(const QString host, const QString port) {
+    if(!parsePort(port, mPort))
+        return -1;
 
     mHost = cname_to_comp(host.toLatin1().data());
 
     if(mHost == -1){
-        mChatWindow->error("Bad host entered");
         return -2;
     }
-
     mNetwork = make_contact(mHost, mPort);
-
-    mChatWindow->connectionStatus(mNetwork != -1);
-
-    if(mNetwork == -1)
-        mChatWindow->error("No Server found");
-    else
-        mChatWindow->notify("Server found!");
     return mNetwork;
 }
