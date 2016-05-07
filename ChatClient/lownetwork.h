@@ -33,8 +33,11 @@ private:
     unsigned long mAdress;
     int mServerSocketHandle;
     std::vector<int>* mClientSocketHandles;
-    QFutureWatcher<connection> mServerWaitWatcher;
+    QFutureWatcher<int> mServerWaitWatcher;
     bool getHostAddress(const QString hostName, unsigned long& hostInt);
+private slots:
+    void clientConnected();
+    int waitForClients(struct sockaddr* clientStruct);
 };
 
 #endif // LOWNETWORK_H

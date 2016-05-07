@@ -9,7 +9,7 @@ ChatWindow::ChatWindow(QWidget *parent) :
 
     // CHANGE BOTH
     mIsLowNetwork = false;
-    mNetwork = new HighNetwork(this);
+    mNetwork = new LowNetwork(this);
 
     setSendingUiEnabled(false);
     setConnectionUiEnabled(true);

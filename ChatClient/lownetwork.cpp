@@ -84,6 +84,16 @@ int LowNetwork::closeNetwork(){
     return errorCount;
 }
 
+int LowNetwork::waitForClients(struct sockaddr* clientStruct){
+    unsigned int clientLength = sizeof(clientStruct);
+    return accept(mServerSocketHandle, clientStruct, &clientLength);
+}
+
+void LowNetwork::clientConnected(){
+    if(mServerWaitWatcher.result() >= 0)
+        mClientSocketHandles->push_back(mServerWaitWatcher.result());
+}
+
 int LowNetwork::server(const QString port){
     bool validPort;
     short shortport = port.toShort(&validPort);
@@ -107,13 +117,18 @@ int LowNetwork::server(const QString port){
     if(listen(mServerSocketHandle, 4) < 0)
         return -4;
 
-    int clientSocketHandle;
+    QObject::connect(
+                &mServerWaitWatcher,
+                SIGNAL(finished()),
+                this,
+                SLOT(clientConnected()));
 
-    unsigned int clientLength = sizeof(clientStruct);
-    if((clientSocketHandle = accept(mServerSocketHandle, (struct sockaddr *) &clientStruct, &clientLength)) < 0)
-        return -5;
+    // TODO: somehow include a callback to the ui
 
-    mClientSocketHandles->push_back(clientSocketHandle);
+    // start connection in concurrent thread
+    QFuture<int> future = QtConcurrent::run(this, &LowNetwork::waitForClients, (struct sockaddr *) &clientStruct);
+
+    mServerWaitWatcher.setFuture(future);
 
     mIsServer = true;
 
