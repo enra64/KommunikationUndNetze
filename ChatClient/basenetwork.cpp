@@ -16,3 +16,25 @@ QString BaseNetwork::networkToString(int fd, size_t& rLength){
     mBuffer[rLength] = '\0';
     return QString(mBuffer);
 }
+
+// dont ask me why this shit compiles
+
+int BaseNetwork::client(const QString, const QString){
+    return -1234;
+}
+
+int BaseNetwork::server(const QString){
+    return -1234;
+}
+
+int BaseNetwork::send(const QString){
+    return -1234;
+}
+
+size_t BaseNetwork::receive(std::vector<QString>&){
+    return -1234;
+}
+
+int BaseNetwork::closeNetwork(){
+    return -1234;
+}

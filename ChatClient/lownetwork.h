@@ -22,11 +22,11 @@ class LowNetwork : public BaseNetwork
 public:
     LowNetwork(QObject *parent = 0);
     ~LowNetwork();
-    int closeNetwork();
-    int send(const QString msg);
-    size_t receive(std::vector<QString>& msg);
-    int server(const QString port);
-    int client(const QString host, const QString port);
+    int closeNetwork() override;
+    int send(const QString msg) override;
+    size_t receive(std::vector<QString>& msg) override;
+    int server(const QString port) override;
+    int client(const QString host, const QString port) override;
 private:
     bool mIsServer;
     unsigned long mAdress;

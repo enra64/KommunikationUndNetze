@@ -20,11 +20,11 @@ class HighNetwork : public BaseNetwork
     Q_OBJECT
 public:
     HighNetwork(QObject *parent = 0);
-    int send(const QString msg);
-    size_t receive(std::vector<QString>& msg);
-    int closeNetwork();
-    int server(const QString port);
-    int client(const QString host, const QString port);
+    int send(const QString msg) override;
+    size_t receive(std::vector<QString>& msg) override;
+    int closeNetwork() override;
+    int server(const QString port) override;
+    int client(const QString host, const QString port) override;
 private:
     QFutureWatcher<connection> mServerWaitWatcher;
     int mZeroLengthMsgCount = 0;

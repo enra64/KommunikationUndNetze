@@ -15,11 +15,11 @@ class BaseNetwork : public QObject
     Q_OBJECT
 public:
     explicit BaseNetwork(QObject *parent = 0);
-    int closeNetwork();
-    size_t receive(std::vector<QString>& msg);
-    int send(const QString msg);
-    int server(const QString port);
-    int client(const QString host, const QString port);
+    virtual int closeNetwork();
+    virtual size_t receive(std::vector<QString>& msg);
+    virtual int send(const QString msg);
+    virtual int server(const QString port);
+    virtual int client(const QString host, const QString port);
 signals:
 
 public slots:
