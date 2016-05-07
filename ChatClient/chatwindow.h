@@ -3,8 +3,10 @@
 
 #include <QMainWindow>
 #include <QCloseEvent>
-class Network;
-#include "network.h"
+class NetworkBase;
+#include "networkbase.h"
+#include "highnetwork.h"
+#include "lownetwork.h"
 
 namespace Ui {
 class ChatWindow;
@@ -26,11 +28,9 @@ public:
 
 private:
     Ui::ChatWindow *ui;
-    Network* mNetwork;
+    NetworkBase* mNetwork;
     void closeEvent(QCloseEvent *bar);
     QTimer* mTimer;
-public slots:
-    void checkNetwork();
 private slots:
     void on_sendButton_clicked();
     void on_clientConnectButton_clicked();
