@@ -75,14 +75,14 @@ int LowNetwork::closeNetwork(){
     if(close(mServerSocketHandle) < 0)
         errorCount--;
 
+    // this is where i would need to cancel the listen() call
+    mServerWaitWatcher.cancel();
+    mServerWaitWatcher.waitForFinished();
+
     mAdress = -1;
     mPort = -1;
     mServerSocketHandle = -1;
     mClientSocketHandles->clear();
-
-    mServerWaitWatcher.cancel();
-
-    mServerWaitWatcher.waitForFinished();
 
     return errorCount;
 }
