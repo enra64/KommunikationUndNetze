@@ -21,7 +21,7 @@ class HighNetwork : public BaseNetwork
 public:
     HighNetwork(QObject *parent = 0);
     int send(const QString msg) override;
-    size_t receive(std::vector<QString>& msg) override;
+    size_t receive(std::vector<Message>& msg) override;
     int closeNetwork() override;
     int server(const QString port) override;
     int client(const QString host, const QString port) override;

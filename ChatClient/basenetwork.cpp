@@ -31,7 +31,7 @@ int BaseNetwork::send(const QString){
     return -1234;
 }
 
-size_t BaseNetwork::receive(std::vector<QString>&){
+size_t BaseNetwork::receive(std::vector<Message>&){
     return -1234;
 }
 

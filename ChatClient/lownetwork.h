@@ -24,15 +24,16 @@ public:
     ~LowNetwork();
     int closeNetwork() override;
     int send(const QString msg) override;
-    size_t receive(std::vector<QString>& msg) override;
+    size_t receive(std::vector<Message>& msg) override;
     int server(const QString port) override;
     int client(const QString host, const QString port) override;
 private:
+    short mPort;
     bool mIsServer;
     unsigned long mAdress;
-    short mPort;
     int mServerSocketHandle;
     std::vector<int>* mClientSocketHandles;
+    QFutureWatcher<connection> mServerWaitWatcher;
     bool getHostAddress(const QString hostName, unsigned long& hostInt);
 };
 

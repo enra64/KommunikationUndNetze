@@ -27,10 +27,14 @@ public:
     void setSendingUiEnabled(bool enable);
     void setConnectionUiEnabled(bool enable);
 
+public slots:
+    void receive();
 private:
     Ui::ChatWindow *ui;
     BaseNetwork* mNetwork;
+    void closeNetworkWithUi();
     void closeEvent(QCloseEvent *bar);
+    bool mIsLowNetwork;
     QTimer* mTimer;
 private slots:
     void on_sendButton_clicked();

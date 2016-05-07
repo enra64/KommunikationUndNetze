@@ -6,14 +6,18 @@ ChatWindow::ChatWindow(QWidget *parent) :
     ui(new Ui::ChatWindow)
 {
     ui->setupUi(this);
+
+    // CHANGE BOTH
+    mIsLowNetwork = false;
     mNetwork = new HighNetwork(this);
+
     setSendingUiEnabled(false);
     setConnectionUiEnabled(true);
 }
 
 ChatWindow::~ChatWindow()
 {
-    mNetwork->closeNetwork();
+    closeNetworkWithUi();
     delete mNetwork;
     delete ui;
 }
@@ -38,12 +42,19 @@ void ChatWindow::connectionStatus(bool connectionOk){
         QObject::connect(
                     mTimer,
                     SIGNAL(timeout()),
-                    mNetwork,
-                    SLOT(pollingRead()));
+                    this,
+                    SLOT(receive()));
         mTimer->start(4);
     }
     else
-        QObject::disconnect(mTimer, SIGNAL(timeout()), mNetwork, SLOT(pollingRead()));
+        QObject::disconnect(mTimer, SIGNAL(timeout()), this, SLOT(receive()));
+}
+
+void ChatWindow::receive(){
+    std::vector<Message> mResults;
+    mNetwork->receive(mResults);
+    for(Message m : mResults)
+        print(m.sender + m.message);
 }
 
 void ChatWindow::setSendingUiEnabled(bool enable){
@@ -60,27 +71,71 @@ void ChatWindow::setConnectionUiEnabled(bool enable){
     ui->disconnectButton->setEnabled(!enable);
 }
 
+void ChatWindow::closeNetworkWithUi()
+{
+    connectionStatus(false);
+    if(mNetwork->closeNetwork() < 0)
+        print("Closed network successfully");
+    else
+        print("Could not close network");
+}
+
 void ChatWindow::on_sendButton_clicked()
 {
-    mNetwork->send(ui->sendText->text());
-    ui->chatHistory->append("You: " + ui->sendText->text());
+    const QString sendText = ui->sendText->text();
+    if(mNetwork->send(sendText) < 0)
+        error("'" + sendText + "' could not be sent");
+    else
+        print("You: " + sendText);
     ui->sendText->clear();
 }
 
 void ChatWindow::on_clientConnectButton_clicked()
 {
-    mNetwork->client(ui->hostText->text(), ui->portText->text());
+    int status;
+    switch(status = mNetwork->client(ui->hostText->text(), ui->portText->text())){
+        default:
+            notify("Connected to server");
+            break;
+        case -1:
+            error("Port no integer");
+            break;
+        case -2:
+            error("Host could not be resolved");
+            break;
+    }
+    connectionStatus(status >= 0);
 }
 
 void ChatWindow::closeEvent(QCloseEvent *bar)
 {
-    mNetwork->closeNetwork();
+    closeNetworkWithUi();
     bar->accept();
 }
 
 void ChatWindow::on_serverConnectButton_clicked()
 {
-    mNetwork->server(ui->portText->text());
+    int status;
+    switch(status = mNetwork->server(ui->portText->text())){
+        case -1:
+            error("Port no integer!");
+            break;
+        case -2:
+            error("Could not do socket()");
+            break;
+        case -3:
+            error("could not bind()");
+            break;
+        case -4:
+            error("could not listen()");
+            break;
+        case -5:
+            error("could not accept() incoming connection");
+            break;
+        default:
+            print("waiting for a connection");
+    }
+    connectionStatus(status >= 0);
 }
 
 void ChatWindow::on_sendText_returnPressed()
@@ -95,7 +150,5 @@ void ChatWindow::on_sendText_textChanged(const QString &arg1)
 
 void ChatWindow::on_disconnectButton_clicked()
 {
-    mNetwork->closeNetwork();
-    setSendingUiEnabled(false);
-    setConnectionUiEnabled(true);
+    closeNetworkWithUi();
 }

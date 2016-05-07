@@ -12,12 +12,6 @@ int HighNetwork::closeNetwork() {
     mPort = -1;
     mHost = -1;
 
-
-    // follow up with ui
-//    mChatWindow->connectionStatus(false);
-//    mChatWindow->setSendingUiEnabled(false);
-//    mChatWindow->setConnectionUiEnabled(true);
-
     return ret;
 }
 
@@ -29,7 +23,7 @@ int HighNetwork::send(const QString msg) {
     return 0;
 }
 
-size_t HighNetwork::receive(std::vector<QString>& msg) {
+size_t HighNetwork::receive(std::vector<Message>& msg) {
     // polling structs
     struct pollfd pollStructs[1] = {{mNetwork, POLLIN, 0}}; // poll network
     if(poll(pollStructs, 1, 2) < 0){
@@ -41,12 +35,11 @@ size_t HighNetwork::receive(std::vector<QString>& msg) {
         size_t readLength;
         QString mess = networkToString(pollStructs[0].fd, readLength);
         if(readLength != 0){
-            msg.push_back(mess);
+            msg.push_back(Message(mess, "not you: "));
         }
         else
             mZeroLengthMsgCount++;
     }
-
     if(mZeroLengthMsgCount > 100){
         closeNetwork();
         return -3;

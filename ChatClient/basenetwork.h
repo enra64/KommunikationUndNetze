@@ -10,13 +10,15 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "message.h"
+
 class BaseNetwork : public QObject
 {
     Q_OBJECT
 public:
     explicit BaseNetwork(QObject *parent = 0);
     virtual int closeNetwork();
-    virtual size_t receive(std::vector<QString>& msg);
+    virtual size_t receive(std::vector<Message>& msg);
     virtual int send(const QString msg);
     virtual int server(const QString port);
     virtual int client(const QString host, const QString port);

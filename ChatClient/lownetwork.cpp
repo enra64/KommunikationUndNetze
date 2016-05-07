@@ -8,7 +8,7 @@ LowNetwork::~LowNetwork(){
     delete mClientSocketHandles;
 }
 
-size_t LowNetwork::receive(std::vector<QString>& msg){
+size_t LowNetwork::receive(std::vector<Message>& msg){
     if(mIsServer){
         struct pollfd structs[mClientSocketHandles->size()];
         for(size_t i = 0; i < mClientSocketHandles->size(); i++){
@@ -20,13 +20,12 @@ size_t LowNetwork::receive(std::vector<QString>& msg){
             closeNetwork();
             return -1;
         }
-        msg.resize(mClientSocketHandles->size());
         int receiveCount = 0;
         for(size_t i = 0; i < mClientSocketHandles->size(); i++){
             if(structs[i].revents & POLLIN){
                 receiveCount++;
                 size_t readLength;
-                msg[i] = networkToString(structs[i].fd, readLength);
+                msg.push_back(Message(networkToString(structs[i].fd, readLength), "not you:"));
             }
         }
         return receiveCount;
@@ -40,7 +39,7 @@ size_t LowNetwork::receive(std::vector<QString>& msg){
         }
         if(pollingStruct[0].revents & POLLIN){
             size_t readLength;
-            msg.push_back(networkToString(pollingStruct[0].fd, readLength));
+            msg.push_back(Message(networkToString(pollingStruct[0].fd, readLength), "not you:"));
             return 1;
         }
         return 0;
@@ -96,23 +95,25 @@ int LowNetwork::server(const QString port){
     struct sockaddr_in serverStruct, clientStruct;
     mServerSocketHandle = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
     if(mServerSocketHandle < 0)
-        return -3;
+        return -2;
 
     serverStruct.sin_family = AF_INET;
     serverStruct.sin_port = htons(shortport);
     serverStruct.sin_addr.s_addr = mAdress;
 
     if(bind(mServerSocketHandle, (struct sockaddr *) &serverStruct, sizeof(serverStruct)) < 0)
-        return -4;
+        return -3;
 
     if(listen(mServerSocketHandle, 4) < 0)
-        return -5;
+        return -4;
 
     int clientSocketHandle;
 
     unsigned int clientLength = sizeof(clientStruct);
     if((clientSocketHandle = accept(mServerSocketHandle, (struct sockaddr *) &clientStruct, &clientLength)) < 0)
-        return -6;
+        return -5;
+
+    mClientSocketHandles->push_back(clientSocketHandle);
 
     mIsServer = true;
 
