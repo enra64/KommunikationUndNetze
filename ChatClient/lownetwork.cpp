@@ -89,9 +89,13 @@ int LowNetwork::waitForClients(struct sockaddr* clientStruct){
     return accept(mServerSocketHandle, clientStruct, &clientLength);
 }
 
-void LowNetwork::clientConnected(){
-    if(mServerWaitWatcher.result() >= 0)
+void LowNetwork::onAccept(){
+    if(mServerWaitWatcher.result() >= 0){
         mClientSocketHandles->push_back(mServerWaitWatcher.result());
+        emit clientConnected(true);
+    }
+    else
+        emit clientConnected(false);
 }
 
 int LowNetwork::server(const QString port){
@@ -121,7 +125,7 @@ int LowNetwork::server(const QString port){
                 &mServerWaitWatcher,
                 SIGNAL(finished()),
                 this,
-                SLOT(clientConnected()));
+                SLOT(onAccept()));
 
     // TODO: somehow include a callback to the ui
 

@@ -36,7 +36,7 @@ private:
     QFutureWatcher<int> mServerWaitWatcher;
     bool getHostAddress(const QString hostName, unsigned long& hostInt);
 private slots:
-    void clientConnected();
+    void onAccept();
     int waitForClients(struct sockaddr* clientStruct);
 };
 

@@ -29,6 +29,7 @@ public:
 
 public slots:
     void receive();
+    void onClientConnected(bool success);
 private:
     Ui::ChatWindow *ui;
     BaseNetwork* mNetwork;

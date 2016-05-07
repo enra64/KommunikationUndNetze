@@ -54,6 +54,7 @@ connection HighNetwork::waitAsServer(){
 
 void HighNetwork::handleServerWaitFinished(){
     mNetwork = mServerWaitWatcher.result();
+    clientConnected(mNetwork >= 0);
 }
 
 int HighNetwork::server(const QString port) {

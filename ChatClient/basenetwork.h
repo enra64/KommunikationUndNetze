@@ -23,7 +23,7 @@ public:
     virtual int server(const QString port);
     virtual int client(const QString host, const QString port);
 signals:
-
+    void clientConnected(bool success);
 public slots:
 
 protected:

@@ -10,6 +10,7 @@ ChatWindow::ChatWindow(QWidget *parent) :
     // CHANGE BOTH
     mIsLowNetwork = false;
     mNetwork = new LowNetwork(this);
+    QObjectCleanupHandler::connect(mNetwork, SIGNAL(clientConnected(bool)), this, SLOT(onClientConnected(bool)));
 
     setSendingUiEnabled(false);
     setConnectionUiEnabled(true);
@@ -32,6 +33,13 @@ void ChatWindow::notify(QString output){
 
 void ChatWindow::error(QString output){
     print(output);
+}
+
+void ChatWindow::onClientConnected(bool success){
+    if(success)
+        notify("Client connected successfully");
+    else
+        error("Could not accept a connection");
 }
 
 void ChatWindow::connectionStatus(bool connectionOk){
