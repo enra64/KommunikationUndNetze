@@ -19,7 +19,7 @@ class HighNetwork : public BaseNetwork
 {
     Q_OBJECT
 public:
-    HighNetwork();
+    HighNetwork(QObject *parent = 0);
     int send(const QString msg);
     size_t receive(std::vector<QString>& msg);
     int closeNetwork();

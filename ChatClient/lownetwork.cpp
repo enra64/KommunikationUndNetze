@@ -1,6 +1,6 @@
 #include "lownetwork.h"
 
-LowNetwork::LowNetwork(){
+LowNetwork::LowNetwork(QObject *parent) : BaseNetwork(parent){
     mClientSocketHandles = new std::vector<int>();
 }
 

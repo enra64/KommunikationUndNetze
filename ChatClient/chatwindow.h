@@ -29,7 +29,7 @@ public:
 
 private:
     Ui::ChatWindow *ui;
-    NetworkBase* mNetwork;
+    HighNetwork* mNetwork;
     void closeEvent(QCloseEvent *bar);
     QTimer* mTimer;
 private slots:

@@ -11,18 +11,20 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 TARGET = ChatClient
 TEMPLATE = app
 
+CONFIG += c++11
+
 SOURCES += main.cpp\
         chatwindow.cpp \
+    basenetwork.cpp \
     lownetwork.cpp \
-    highnetwork.cpp \
-    basenetwork.cpp
+    highnetwork.cpp
 
 HEADERS  += chatwindow.h \
     cnaiapi.h \
+    basenetwork.h \
     lownetwork.h \
     highnetwork.h \
-    compilerdistractor.h \
-    basenetwork.h
+    compilerdistractor.h
 
 LIBS += -L"$$_PRO_FILE_PWD_/" -lcnaiapi64
 

@@ -1,6 +1,6 @@
 #include "highnetwork.h"
 
-HighNetwork::HighNetwork(){
+HighNetwork::HighNetwork(QObject *parent) : BaseNetwork(parent){
 }
 
 int HighNetwork::closeNetwork() {
