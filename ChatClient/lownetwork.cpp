@@ -2,6 +2,12 @@
 
 LowNetwork::LowNetwork(QObject *parent) : BaseNetwork(parent){
     mClientSocketHandles = new std::vector<int>();
+
+    QObject::connect(
+                &mServerWaitWatcher,
+                SIGNAL(finished()),
+                this,
+                SLOT(onAccept()));
 }
 
 LowNetwork::~LowNetwork(){
@@ -81,11 +87,15 @@ int LowNetwork::closeNetwork(){
     mServerSocketHandle = -1;
     mClientSocketHandles->clear();
 
+    mServerWaitWatcher.cancel();
+
     return errorCount;
 }
 
 int LowNetwork::waitForClients(struct sockaddr* clientStruct){
     unsigned int clientLength = sizeof(clientStruct);
+    if(listen(mServerSocketHandle, 4) < 0)
+        return -2;
     return accept(mServerSocketHandle, clientStruct, &clientLength);
 }
 
@@ -96,6 +106,9 @@ void LowNetwork::onAccept(){
     }
     else
         emit clientConnected(false);
+
+    // begin waiting for clients again
+    scheduleWaitingForClients();
 }
 
 int LowNetwork::server(const QString port){
@@ -106,8 +119,9 @@ int LowNetwork::server(const QString port){
 
     mAdress = htonl(INADDR_ANY);
 
-    struct sockaddr_in serverStruct, clientStruct;
+    struct sockaddr_in serverStruct;
     mServerSocketHandle = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+
     if(mServerSocketHandle < 0)
         return -2;
 
@@ -118,25 +132,24 @@ int LowNetwork::server(const QString port){
     if(bind(mServerSocketHandle, (struct sockaddr *) &serverStruct, sizeof(serverStruct)) < 0)
         return -3;
 
-    if(listen(mServerSocketHandle, 4) < 0)
-        return -4;
+    mIsServer = true;
 
-    QObject::connect(
-                &mServerWaitWatcher,
-                SIGNAL(finished()),
-                this,
-                SLOT(onAccept()));
+    scheduleWaitingForClients();
 
-    // TODO: somehow include a callback to the ui
+    // successfully navigated the mine field
+    return 0;
+}
+
+int LowNetwork::scheduleWaitingForClients()
+{
+    struct sockaddr_in clientStruct;
+
+    mServerWaitWatcher.cancel();
 
     // start connection in concurrent thread
     QFuture<int> future = QtConcurrent::run(this, &LowNetwork::waitForClients, (struct sockaddr *) &clientStruct);
 
     mServerWaitWatcher.setFuture(future);
-
-    mIsServer = true;
-
-    // successfully navigated the mine field
     return 0;
 }
 

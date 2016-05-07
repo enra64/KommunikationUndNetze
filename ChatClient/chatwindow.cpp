@@ -111,6 +111,12 @@ void ChatWindow::on_clientConnectButton_clicked()
         case -2:
             error("Host could not be resolved");
             break;
+        case -3:
+            error("Could not socket()");
+            break;
+        case -4:
+            error("could not connect()");
+        break;
     }
     connectionStatus(status >= 0);
 }

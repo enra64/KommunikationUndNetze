@@ -32,6 +32,7 @@ private:
     bool mIsServer;
     unsigned long mAdress;
     int mServerSocketHandle;
+    int scheduleWaitingForClients();
     std::vector<int>* mClientSocketHandles;
     QFutureWatcher<int> mServerWaitWatcher;
     bool getHostAddress(const QString hostName, unsigned long& hostInt);
