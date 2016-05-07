@@ -13,14 +13,12 @@ TEMPLATE = app
 
 SOURCES += main.cpp\
         chatwindow.cpp \
-    networkbase.cpp \
     lownetwork.cpp \
     highnetwork.cpp \
     basenetwork.cpp
 
 HEADERS  += chatwindow.h \
     cnaiapi.h \
-    networkbase.h \
     lownetwork.h \
     highnetwork.h \
     compilerdistractor.h \
