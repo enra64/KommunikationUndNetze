@@ -13,9 +13,9 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "networkbase.h"
+#include "basenetwork.h"
 
-class HighNetwork: public NetworkBase
+class HighNetwork : public BaseNetwork
 {
     Q_OBJECT
 public:

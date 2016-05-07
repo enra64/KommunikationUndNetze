@@ -6,7 +6,7 @@
 
 #include "highnetwork.h"
 #include "lownetwork.h"
-#include "networkbase.h"
+#include "basenetwork.h"
 
 
 namespace Ui {
