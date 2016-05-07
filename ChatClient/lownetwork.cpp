@@ -11,6 +11,7 @@ LowNetwork::LowNetwork(QObject *parent) : BaseNetwork(parent){
 }
 
 LowNetwork::~LowNetwork(){
+    mServerWaitWatcher.cancel();
     delete mClientSocketHandles;
 }
 
