@@ -7,16 +7,22 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <stdio.h>
+#include "networkbase.h"
 
-class LowNetwork
+class LowNetwork : public NetworkBase
 {
 public:
-    int server(const QString port);
-    int client(const QString host, const QString port);
+    int closeNetwork() override;
+    int send(const QString msg) override;
+    size_t receive(std::vector<QString>& msg) override;
+    int server(const QString port) override;
+    int client(const QString host, const QString port) override;
 private:
+    bool mIsServer;
     unsigned long mAdress;
     short mPort;
-    int mSocketHandle;
+    int mServerSocketHandle;
+    std::vector<int>* mClientSocketHandles;
     bool getHostAddress(const QString hostName, unsigned long& hostInt);
 };
 

@@ -24,7 +24,6 @@ public:
 private:
     QFutureWatcher<connection> mServerWaitWatcher;
     connection waitAsServer();
-    bool parsePort(const QString port);
     size_t networkToString(QString& msg);
     appnum mPort;
     computer mHost;
