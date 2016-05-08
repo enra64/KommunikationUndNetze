@@ -11,17 +11,29 @@ LowNetwork::~LowNetwork(){
 
 size_t LowNetwork::receive(std::vector<Message>& msg){
     if(mIsServer){
-        struct pollfd structs[mClientSocketHandles->size()];
-        for(size_t i = 0; i < mClientSocketHandles->size(); i++){
+        size_t clientCount = mClientSocketHandles->size();
+        struct pollfd structs[clientCount + 1];
+        for(size_t i = 0; i < clientCount; i++){
             structs[i].fd = mClientSocketHandles->at(i);
             structs[i].events = POLLIN;
             structs[i].revents = 0;
         }
-        if(poll(structs, mClientSocketHandles->size(), 2) < 0){
+
+        // check whether we have any new connections
+        structs[clientCount].fd = mServerSocketHandle;
+        structs[clientCount].events = POLLIN;
+        structs[clientCount].revents = 0;
+
+        if(poll(structs, clientCount + 1, 2) < 0){
             closeNetwork();
             return -1;
         }
         int receiveCount = 0;
+
+        if(structs[clientCount].revents & POLLIN){
+            scheduleWaitingForClients();
+        }
+
         for(size_t i = 0; i < mClientSocketHandles->size(); i++){
             if(structs[i].revents & POLLIN){
                 receiveCount++;
@@ -89,8 +101,6 @@ int LowNetwork::closeNetwork(){
 
 int LowNetwork::waitForClients(struct sockaddr* clientStruct){
     unsigned int clientLength = sizeof(clientStruct);
-    if(listen(mServerSocketHandle, 4) < 0)
-        return -2;
     return accept(mServerSocketHandle, clientStruct, &clientLength);
 }
 
@@ -103,7 +113,7 @@ void LowNetwork::onAccept(){
         emit clientConnected(false);
 
     // begin waiting for clients again
-    scheduleWaitingForClients();
+    // scheduleWaitingForClients();
 }
 
 int LowNetwork::server(const QString port){
@@ -126,6 +136,9 @@ int LowNetwork::server(const QString port){
 
     if(bind(mServerSocketHandle, (struct sockaddr *) &serverStruct, sizeof(serverStruct)) < 0)
         return -3;
+
+    if(listen(mServerSocketHandle, 4) < 0)
+        return -4;
 
     mIsServer = true;
 

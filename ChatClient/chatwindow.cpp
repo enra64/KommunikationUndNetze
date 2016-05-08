@@ -54,8 +54,11 @@ void ChatWindow::connectionStatus(bool connectionOk){
                     SLOT(receive()));
         mTimer->start(4);
     }
-    else
+    else if(mTimer != nullptr){
         QObject::disconnect(mTimer, SIGNAL(timeout()), this, SLOT(receive()));
+        delete mTimer;
+        mTimer = nullptr;
+    }
 }
 
 void ChatWindow::receive(){

@@ -24,6 +24,7 @@ public:
     virtual int client(const QString host, const QString port);
 signals:
     void clientConnected(bool success);
+    void messageReceived(Message msg);
 protected slots:
     virtual void onAccept();
     virtual int waitForClients(struct sockaddr* clientStruct);
