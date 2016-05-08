@@ -3,10 +3,11 @@
 
 #include <QMainWindow>
 #include <QCloseEvent>
-class NetworkBase;
-#include "networkbase.h"
+
 #include "highnetwork.h"
 #include "lownetwork.h"
+#include "basenetwork.h"
+
 
 namespace Ui {
 class ChatWindow;
@@ -25,10 +26,14 @@ public:
     void connectionStatus(bool connectionOk);
     void setSendingUiEnabled(bool enable);
     void setConnectionUiEnabled(bool enable);
-
+public slots:
+    void onClientConnected(bool success);
+    void onDisconnect(QString name, int remainingConnections);
+    void onMessageReceived(Message msg);
 private:
     Ui::ChatWindow *ui;
-    NetworkBase* mNetwork;
+    BaseNetwork* mNetwork;
+    void closeNetworkWithUi();
     void closeEvent(QCloseEvent *bar);
     QTimer* mTimer;
 private slots:
