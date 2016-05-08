@@ -2,6 +2,14 @@
 
 BaseNetwork::BaseNetwork(QObject *parent) : QObject(parent)
 {
+    mTimer = new QTimer(this);
+    QObject::connect(
+                mTimer,
+                SIGNAL(timeout()),
+                this,
+                SLOT(onPoll()));
+    mTimer->start(4);
+
     QObject::connect(
                 &mServerWaitWatcher,
                 SIGNAL(finished()),
@@ -25,6 +33,10 @@ int BaseNetwork::waitForClients(struct sockaddr*){
     return -1234;
 }
 
+int BaseNetwork::onPoll(){
+    return -1234;
+}
+
 void BaseNetwork::onAccept(){
 }
 
@@ -39,10 +51,6 @@ int BaseNetwork::server(const QString){
 }
 
 int BaseNetwork::send(const QString){
-    return -1234;
-}
-
-size_t BaseNetwork::receive(std::vector<Message>&){
     return -1234;
 }
 

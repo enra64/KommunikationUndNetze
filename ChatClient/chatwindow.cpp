@@ -7,10 +7,11 @@ ChatWindow::ChatWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    // CHANGE BOTH
-    mIsLowNetwork = false;
-    mNetwork = new LowNetwork(this);
+    mNetwork = new HighNetwork(this);
+
+    QObject::connect(mNetwork, SIGNAL(messageReceived(Message)), this, SLOT(onMessageReceived(Message)));
     QObject::connect(mNetwork, SIGNAL(clientConnected(bool)), this, SLOT(onClientConnected(bool)));
+    QObject::connect(mNetwork, SIGNAL(disconnect(QString, int)), this, SLOT(onDisconnect(QString, int)));
 
     setSendingUiEnabled(false);
     setConnectionUiEnabled(true);
@@ -42,30 +43,20 @@ void ChatWindow::onClientConnected(bool success){
         error("Could not accept a connection");
 }
 
+void ChatWindow::onDisconnect(QString name, int remainingConnetions)
+{
+    notify(name + " disconnected!");
+    connectionStatus(remainingConnetions > 0);
+}
+
+void ChatWindow::onMessageReceived(Message msg)
+{
+    print(msg.sender + msg.message);
+}
+
 void ChatWindow::connectionStatus(bool connectionOk){
     setSendingUiEnabled(connectionOk);
     setConnectionUiEnabled(!connectionOk);
-    if(connectionOk){
-        mTimer = new QTimer(this);
-        QObject::connect(
-                    mTimer,
-                    SIGNAL(timeout()),
-                    this,
-                    SLOT(receive()));
-        mTimer->start(4);
-    }
-    else if(mTimer != nullptr){
-        QObject::disconnect(mTimer, SIGNAL(timeout()), this, SLOT(receive()));
-        delete mTimer;
-        mTimer = nullptr;
-    }
-}
-
-void ChatWindow::receive(){
-    std::vector<Message> mResults;
-    mNetwork->receive(mResults);
-    for(Message m : mResults)
-        print(m.sender + m.message);
 }
 
 void ChatWindow::setSendingUiEnabled(bool enable){

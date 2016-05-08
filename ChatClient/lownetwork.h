@@ -24,15 +24,14 @@ public:
     ~LowNetwork();
     int closeNetwork() override;
     int send(const QString msg) override;
-    size_t receive(std::vector<Message>& msg) override;
     int server(const QString port) override;
     int client(const QString host, const QString port) override;
 protected slots:
+    int onPoll() override;
     void onAccept() override;
     int waitForClients(struct sockaddr* clientStruct) override;
 private:
     short mPort;
-    bool mIsServer;
     unsigned long mAdress;
     int mServerSocketHandle;
     int scheduleWaitingForClients();

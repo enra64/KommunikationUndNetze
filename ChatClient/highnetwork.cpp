@@ -6,6 +6,8 @@ HighNetwork::HighNetwork(QObject *parent) : BaseNetwork(parent){
 int HighNetwork::closeNetwork() {
     int ret = end_contact(mNetwork);
 
+    emit disconnect("Disconnect!", 0);
+
     // reset member variables
     mZeroLengthMsgCount = 0;
     mNetwork = -1;
@@ -23,7 +25,7 @@ int HighNetwork::send(const QString msg) {
     return 0;
 }
 
-size_t HighNetwork::receive(std::vector<Message>& msg) {
+int HighNetwork::onPoll(){
     // polling structs
     struct pollfd pollStructs[1] = {{mNetwork, POLLIN, 0}}; // poll network
     if(poll(pollStructs, 1, 2) < 0){
@@ -34,15 +36,13 @@ size_t HighNetwork::receive(std::vector<Message>& msg) {
     if(pollStructs[0].revents & POLLIN){
         size_t readLength;
         QString mess = networkToString(pollStructs[0].fd, readLength);
-        if(readLength != 0){
-            msg.push_back(Message(mess, "not you: "));
+        if(readLength != 0)
+            emit messageReceived(Message(mess, "Not you: "));
+        else{
+            if(closeNetwork() < 0)
+                return -4;
+            return -3;
         }
-        else
-            mZeroLengthMsgCount++;
-    }
-    if(mZeroLengthMsgCount > 100){
-        closeNetwork();
-        return -3;
     }
     return 0;
 }

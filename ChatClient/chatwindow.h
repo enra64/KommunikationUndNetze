@@ -26,16 +26,15 @@ public:
     void connectionStatus(bool connectionOk);
     void setSendingUiEnabled(bool enable);
     void setConnectionUiEnabled(bool enable);
-
 public slots:
-    void receive();
     void onClientConnected(bool success);
+    void onDisconnect(QString name, int remainingConnections);
+    void onMessageReceived(Message msg);
 private:
     Ui::ChatWindow *ui;
     BaseNetwork* mNetwork;
     void closeNetworkWithUi();
     void closeEvent(QCloseEvent *bar);
-    bool mIsLowNetwork;
     QTimer* mTimer;
 private slots:
     void on_sendButton_clicked();

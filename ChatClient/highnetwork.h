@@ -21,7 +21,6 @@ class HighNetwork : public BaseNetwork
 public:
     HighNetwork(QObject *parent = 0);
     int send(const QString msg) override;
-    size_t receive(std::vector<Message>& msg) override;
     int closeNetwork() override;
     int server(const QString port) override;
     int client(const QString host, const QString port) override;
@@ -32,6 +31,7 @@ private:
     computer mHost;
     appnum mPort;
 protected slots:
+    int onPoll() override;
     void onAccept() override;
     int waitForClients(struct sockaddr* clientStruct) override;
 };
