@@ -34,6 +34,11 @@ int BaseNetwork::client(const QString, const QString){
     return -1234;
 }
 
+ConnectionState BaseNetwork::getConnectionState()
+{
+    return mConnectionState;
+}
+
 int BaseNetwork::server(const QString){
     return -1234;
 }

@@ -12,6 +12,7 @@ ChatWindow::ChatWindow(QWidget *parent) :
     QObject::connect(mNetwork, SIGNAL(messageReceived(Message)), this, SLOT(onMessageReceived(Message)));
     QObject::connect(mNetwork, SIGNAL(clientConnected(bool)), this, SLOT(onClientConnected(bool)));
     QObject::connect(mNetwork, SIGNAL(disconnect(QString, int)), this, SLOT(onDisconnect(QString, int)));
+    QObject::connect(mNetwork, SIGNAL(closed(int)), this, SLOT(onNetworkClosed(int)));
 
     setSendingUiEnabled(false);
     setConnectionUiEnabled(true);
@@ -43,15 +44,25 @@ void ChatWindow::onClientConnected(bool success){
         error("Could not accept a connection");
 }
 
-void ChatWindow::onDisconnect(QString name, int remainingConnetions)
+void ChatWindow::onDisconnect(QString name, int remainingConnections)
 {
     notify(name + " disconnected!");
-    connectionStatus(remainingConnetions > 0);
+    if(remainingConnections == 0 && mNetwork->getConnectionState() == ConnectionState::SERVER)
+        notify("Server still running, no clients remaining!");
 }
 
 void ChatWindow::onMessageReceived(Message msg)
 {
-    print(msg.getSender().getName() + msg.getMessage());
+    print(msg.getSender().getName() + ": " + msg.getMessage());
+}
+
+void ChatWindow::onNetworkClosed(int status)
+{
+    connectionStatus(false);
+    if(status < 0)
+        error("Could not close network");
+    else
+        notify("Network closed successfully");
 }
 
 void ChatWindow::connectionStatus(bool connectionOk){
@@ -75,11 +86,8 @@ void ChatWindow::setConnectionUiEnabled(bool enable){
 
 void ChatWindow::closeNetworkWithUi()
 {
-    connectionStatus(false);
-    if(mNetwork->closeNetwork() >= 0)
-        print("Closed network successfully");
-    else
-        print("Could not close network");
+    // emits a signal, dont need to catch errors
+    mNetwork->closeNetwork();
 }
 
 void ChatWindow::on_sendButton_clicked()

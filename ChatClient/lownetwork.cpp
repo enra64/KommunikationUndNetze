@@ -40,9 +40,11 @@ int LowNetwork::closeNetwork(){
     if(close(mServerSocketHandle) < 0)
         errorCount--;
 
+
     mServerWaitWatcher.cancel();
     // ensure that no accept() is currently waiting
     mServerWaitWatcher.waitForFinished();
+
 
     mAdress = -1;
     mPort = -1;
@@ -51,7 +53,12 @@ int LowNetwork::closeNetwork(){
 
     mConnectionState = ConnectionState::NO_CONNECTION;
 
+    emit closed(errorCount);
     return errorCount;
+}
+
+bool peerHasSocket (Peer p, int socket) {
+  return p.getSocket() == socket;
 }
 
 int LowNetwork::onPoll(){
@@ -62,6 +69,8 @@ int LowNetwork::onPoll(){
         case ConnectionState::SERVER:{
                 size_t clientCount = mClients->size();
                 struct pollfd structs[clientCount + 1];
+                int receiveCount = 0;
+
                 for(size_t i = 0; i < clientCount; i++){
                     structs[i].fd = mClients->at(i).getSocket();
                     structs[i].events = POLLIN;
@@ -78,8 +87,23 @@ int LowNetwork::onPoll(){
                     closeNetwork();
                     return -1;
                 }
-                int receiveCount = 0;
 
+                for(size_t i = 0; i < clientCount; i++){
+                    if(structs[i].revents & POLLIN){
+                        receiveCount++;
+                        size_t readLength;
+                        Message m(networkToString(structs[i].fd, readLength), mClients->at(i));
+                        if(m.isEmpty()){
+                            close(structs[i].fd);
+                            emit disconnect(mClients->at(i).getName(), mClients->size() - 1);
+                            mClients->erase(mClients->begin() + i);
+                        }
+                        else
+                            emit messageReceived(m);
+                    }
+                }
+
+                // check for new clients now that we cant fuck up the vector anymore
                 if(structs[clientCount].revents & POLLIN){
                     struct sockaddr_in clientStruct;
                     unsigned int clientLength = sizeof(clientStruct);
@@ -89,20 +113,6 @@ int LowNetwork::onPoll(){
                         mClients->push_back(Peer(clientSocket));
                 }
 
-                for(size_t i = 0; i < mClients->size(); i++){
-                    if(structs[i].revents & POLLIN){
-                        receiveCount++;
-                        size_t readLength;
-                        Message m(networkToString(structs[i].fd, readLength), mClients->at(i));
-                        if(m.isEmpty()){
-                            close(structs[i].fd);
-                            mClients->erase(mClients->begin() + i);
-                            emit disconnect(mClients->at(i).getName(), mClients->size());
-                        }
-                        else
-                            emit messageReceived(m);
-                    }
-                }
                 return receiveCount;
         }
         case ConnectionState::CLIENT:{
@@ -114,7 +124,14 @@ int LowNetwork::onPoll(){
                 }
                 if(pollingStruct[0].revents & POLLIN){
                     size_t readLength;
-                    emit messageReceived(Message(networkToString(pollingStruct[0].fd, readLength), Peer("Server", mServerSocketHandle)));
+                    Message m(networkToString(pollingStruct[0].fd, readLength), Peer("Server", mServerSocketHandle));
+                    if(readLength > 0)
+                        emit messageReceived(m);
+                    else{
+                        emit disconnect("The server", 0);
+                        closeNetwork();
+                        return -1;
+                    }
                     return 1;
                 }
                 return 0;

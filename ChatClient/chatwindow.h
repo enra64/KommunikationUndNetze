@@ -30,6 +30,7 @@ public slots:
     void onClientConnected(bool success);
     void onDisconnect(QString name, int remainingConnections);
     void onMessageReceived(Message msg);
+    void onNetworkClosed(int status);
 private:
     Ui::ChatWindow *ui;
     BaseNetwork* mNetwork;

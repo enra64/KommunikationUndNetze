@@ -28,10 +28,12 @@ public:
     virtual int send(const QString msg);
     virtual int server(const QString port);
     virtual int client(const QString host, const QString port);
+    ConnectionState getConnectionState();
 signals:
     void clientConnected(bool success);
     void disconnect(QString name, int remainingNetworkConnections);
     void messageReceived(Message msg);
+    void closed(int status);
 protected slots:
     virtual int onPoll();
 protected:
