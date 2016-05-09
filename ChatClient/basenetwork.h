@@ -10,6 +10,9 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <netinet/in.h>
+#include <poll.h>
+
 #include "message.h"
 
 enum struct ConnectionState{
@@ -24,8 +27,8 @@ class BaseNetwork : public QObject
     Q_OBJECT
 public:
     explicit BaseNetwork(QObject *parent = 0);
-    virtual int closeNetwork();
-    virtual int send(const QString msg);
+    int closeNetwork();
+    int send(const QString msg);
     virtual int server(const QString port);
     virtual int client(const QString host, const QString port);
     ConnectionState getConnectionState();
@@ -35,7 +38,7 @@ signals:
     void messageReceived(Message msg);
     void closed(int status);
 protected slots:
-    virtual int onPoll();
+    int onPoll();
 protected:
     ConnectionState mConnectionState = ConnectionState::NOT_SET;
     QString networkToString(int fd, size_t& receiveLength);
@@ -43,7 +46,10 @@ protected:
     QFutureWatcher<int> mServerWaitWatcher;
     std::vector<Peer>* mClients;
     int mZeroLengthMsgCount = 0;
+    int mServerSocketHandle;
     char mBuffer[1024];
+    short mPort;
+    long mHost;
 private:
     QTimer* mTimer;
 };

@@ -20,22 +20,23 @@ class ChatWindow : public QMainWindow
 public:
     explicit ChatWindow(QWidget *parent = 0);
     ~ChatWindow();
-    void print(QString output);
-    void error(QString errorDescription);
-    void notify(QString msg);
-    void connectionStatus(bool connectionOk);
-    void setSendingUiEnabled(bool enable);
-    void setConnectionUiEnabled(bool enable);
 public slots:
     void onClientConnected(bool success);
     void onDisconnect(QString name, int remainingConnections);
     void onMessageReceived(Message msg);
     void onNetworkClosed(int status);
 private:
+    void print(QString output);
+    void error(QString errorDescription);
+    void notify(QString msg);
+    void connectionStatus(bool connectionOk);
+    void setSendingUiEnabled(bool enable);
+    void setConnectionUiEnabled(bool enable);
     Ui::ChatWindow *ui;
-    BaseNetwork* mNetwork;
+    BaseNetwork* mNetwork = nullptr;
     void closeNetworkWithUi();
     void closeEvent(QCloseEvent *bar);
+    void loadNetwork(bool kn);
     QTimer* mTimer;
 private slots:
     void on_sendButton_clicked();
@@ -44,6 +45,8 @@ private slots:
     void on_sendText_returnPressed();
     void on_sendText_textChanged(const QString &arg1);
     void on_disconnectButton_clicked();
+    void on_knApiRadio_toggled(bool checked);
+    void on_unixApiRadio_toggled(bool checked);
 };
 
 #endif // CHATWINDOW_H

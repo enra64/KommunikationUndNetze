@@ -23,17 +23,10 @@ class LowNetwork : public BaseNetwork
 public:
     LowNetwork(QObject *parent = 0);
     ~LowNetwork();
-    int closeNetwork() override;
-    int send(const QString msg) override;
     int server(const QString port) override;
     int client(const QString host, const QString port) override;
-protected slots:
-    int onPoll() override;
 private:
-    short mPort;
-    unsigned long mAdress;
-    int mServerSocketHandle;
-    bool getHostAddress(const QString hostName, unsigned long& hostInt);
+    bool getHostAddress(const QString hostName, long& hostInt);
 };
 
 #endif // LOWNETWORK_H

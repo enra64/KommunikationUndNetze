@@ -7,15 +7,9 @@ ChatWindow::ChatWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    mNetwork = new LowNetwork(this);
-
-    QObject::connect(mNetwork, SIGNAL(messageReceived(Message)), this, SLOT(onMessageReceived(Message)));
-    QObject::connect(mNetwork, SIGNAL(clientConnected(bool)), this, SLOT(onClientConnected(bool)));
-    QObject::connect(mNetwork, SIGNAL(disconnect(QString, int)), this, SLOT(onDisconnect(QString, int)));
-    QObject::connect(mNetwork, SIGNAL(closed(int)), this, SLOT(onNetworkClosed(int)));
-
     setSendingUiEnabled(false);
-    setConnectionUiEnabled(true);
+    setConnectionUiEnabled(false);
+    ui->disconnectButton->setEnabled(false);
 }
 
 ChatWindow::~ChatWindow()
@@ -48,7 +42,7 @@ void ChatWindow::onDisconnect(QString name, int remainingConnections)
 {
     notify(name + " disconnected!");
     if(remainingConnections == 0 && mNetwork->getConnectionState() == ConnectionState::SERVER)
-        notify("Server still running, no clients remaining!");
+        notify("Server still running, 0 clients.");
 }
 
 void ChatWindow::onMessageReceived(Message msg)
@@ -68,6 +62,7 @@ void ChatWindow::onNetworkClosed(int status)
 void ChatWindow::connectionStatus(bool connectionOk){
     setSendingUiEnabled(connectionOk);
     setConnectionUiEnabled(!connectionOk);
+    //ui->disconnectButton->setEnabled(connectionOk);
 }
 
 void ChatWindow::setSendingUiEnabled(bool enable){
@@ -156,7 +151,8 @@ void ChatWindow::on_serverConnectButton_clicked()
 
 void ChatWindow::on_sendText_returnPressed()
 {
-    on_sendButton_clicked();
+    if(ui->sendButton->isEnabled())
+        on_sendButton_clicked();
 }
 
 void ChatWindow::on_sendText_textChanged(const QString &arg1)
@@ -167,4 +163,38 @@ void ChatWindow::on_sendText_textChanged(const QString &arg1)
 void ChatWindow::on_disconnectButton_clicked()
 {
     closeNetworkWithUi();
+}
+
+void ChatWindow::loadNetwork(bool kn)
+{
+    // kill old networking solution
+    if(mNetwork != nullptr){
+        mNetwork->closeNetwork();
+        delete mNetwork;
+    }
+    // create new network system
+    if(kn)
+        mNetwork = new HighNetwork(this);
+    else
+        mNetwork = new LowNetwork(this);
+
+    QObject::connect(mNetwork, SIGNAL(messageReceived(Message)), this, SLOT(onMessageReceived(Message)));
+    QObject::connect(mNetwork, SIGNAL(clientConnected(bool)), this, SLOT(onClientConnected(bool)));
+    QObject::connect(mNetwork, SIGNAL(disconnect(QString, int)), this, SLOT(onDisconnect(QString, int)));
+    QObject::connect(mNetwork, SIGNAL(closed(int)), this, SLOT(onNetworkClosed(int)));
+
+    setSendingUiEnabled(false);
+    setConnectionUiEnabled(true);
+}
+
+void ChatWindow::on_knApiRadio_toggled(bool useKn)
+{
+    if(useKn)
+        loadNetwork(useKn);
+}
+
+void ChatWindow::on_unixApiRadio_toggled(bool useUnix)
+{
+    if(useUnix)
+        loadNetwork(!useUnix);
 }
