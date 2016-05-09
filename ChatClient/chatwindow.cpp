@@ -7,7 +7,7 @@ ChatWindow::ChatWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    mNetwork = new HighNetwork(this);
+    mNetwork = new LowNetwork(this);
 
     QObject::connect(mNetwork, SIGNAL(messageReceived(Message)), this, SLOT(onMessageReceived(Message)));
     QObject::connect(mNetwork, SIGNAL(clientConnected(bool)), this, SLOT(onClientConnected(bool)));
@@ -51,7 +51,7 @@ void ChatWindow::onDisconnect(QString name, int remainingConnetions)
 
 void ChatWindow::onMessageReceived(Message msg)
 {
-    print(msg.sender + msg.message);
+    print(msg.getSender().getName() + msg.getMessage());
 }
 
 void ChatWindow::connectionStatus(bool connectionOk){

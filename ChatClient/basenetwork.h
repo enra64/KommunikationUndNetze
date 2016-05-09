@@ -34,13 +34,12 @@ signals:
     void messageReceived(Message msg);
 protected slots:
     virtual int onPoll();
-    virtual void onAccept();
-    virtual int waitForClients(struct sockaddr* clientStruct);
 protected:
     ConnectionState mConnectionState = ConnectionState::NOT_SET;
     QString networkToString(int fd, size_t& receiveLength);
     bool parsePort(const QString port, short& shortPort);
     QFutureWatcher<int> mServerWaitWatcher;
+    std::vector<Peer>* mClients;
     int mZeroLengthMsgCount = 0;
     char mBuffer[1024];
 private:

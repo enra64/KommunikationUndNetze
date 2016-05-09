@@ -2,14 +2,34 @@
 #define MESSAGE_H
 
 #include <QString>
+#include "client.h"
 
 class Message
 {
 public:
-    Message(QString msg, QString sendr);
-    QString message, sender;
-    int length();
-    bool isEmpty();
+    Message(QString msg, Peer sendr);
+
+    inline int length()
+    {
+        return mMessage.length();
+    }
+
+    inline bool isEmpty()
+    {
+        return mMessage.isEmpty();
+    }
+
+    inline QString getMessage(){
+        return mMessage;
+    }
+
+    inline Peer getSender(){
+        return mSender;
+    }
+
+private:
+    QString mMessage;
+    Peer mSender;
 };
 
 #endif // MESSAGE_H

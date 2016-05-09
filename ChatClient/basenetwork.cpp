@@ -2,6 +2,7 @@
 
 BaseNetwork::BaseNetwork(QObject *parent) : QObject(parent)
 {
+    mClients = new std::vector<Peer>();
     mTimer = new QTimer(this);
     QObject::connect(
                 mTimer,
@@ -9,12 +10,6 @@ BaseNetwork::BaseNetwork(QObject *parent) : QObject(parent)
                 this,
                 SLOT(onPoll()));
     mTimer->start(4);
-
-    QObject::connect(
-                &mServerWaitWatcher,
-                SIGNAL(finished()),
-                this,
-                SLOT(onAccept()));
 }
 
 bool BaseNetwork::parsePort(const QString port, short& shortPort){
@@ -29,15 +24,8 @@ QString BaseNetwork::networkToString(int fd, size_t& rLength){
     return QString(mBuffer);
 }
 
-int BaseNetwork::waitForClients(struct sockaddr*){
-    return -1234;
-}
-
 int BaseNetwork::onPoll(){
     return -1234;
-}
-
-void BaseNetwork::onAccept(){
 }
 
 // dont ask me why this shit compiles

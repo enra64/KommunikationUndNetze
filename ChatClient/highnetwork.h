@@ -24,16 +24,16 @@ public:
     int closeNetwork() override;
     int server(const QString port) override;
     int client(const QString host, const QString port) override;
-private:
-    int mZeroLengthMsgCount = 0;
-    connection waitAsServer();
-    connection mNetwork;
-    computer mHost;
-    appnum mPort;
 protected slots:
     int onPoll() override;
-    void onAccept() override;
-    int waitForClients(struct sockaddr* clientStruct) override;
+private:
+    int asyncWaitForClients(struct sockaddr* clientStruct);
+    int mZeroLengthMsgCount = 0;
+    connection waitAsServer();
+    connection mServerSocketHandle;
+    void onAccept();
+    computer mHost;
+    appnum mPort;
 };
 
 #endif // HIGHNETWORK_H

@@ -15,6 +15,7 @@
 #include "compilerdistractor.h"
 
 #include "basenetwork.h"
+#include "client.h"
 
 class LowNetwork : public BaseNetwork
 {
@@ -28,14 +29,10 @@ public:
     int client(const QString host, const QString port) override;
 protected slots:
     int onPoll() override;
-    void onAccept() override;
-    int waitForClients(struct sockaddr* clientStruct) override;
 private:
     short mPort;
     unsigned long mAdress;
     int mServerSocketHandle;
-    int scheduleWaitingForClients();
-    std::vector<int>* mClientSocketHandles;
     bool getHostAddress(const QString hostName, unsigned long& hostInt);
 };
 

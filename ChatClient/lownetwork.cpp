@@ -1,13 +1,12 @@
 #include "lownetwork.h"
 
 LowNetwork::LowNetwork(QObject *parent) : BaseNetwork(parent){
-    mClientSocketHandles = new std::vector<int>();
     mConnectionState = ConnectionState::NO_CONNECTION;
 }
 
 LowNetwork::~LowNetwork(){
     mServerWaitWatcher.cancel();
-    delete mClientSocketHandles;
+    delete mClients;
 }
 
 int LowNetwork::send(const QString msg){
@@ -20,8 +19,8 @@ int LowNetwork::send(const QString msg){
             return -1;
         return 0;
     case ConnectionState::SERVER:
-        for(int fd : *mClientSocketHandles){
-            sentData = write(fd, msgData, msg.length());
+        for(Peer p : *mClients){
+            sentData = write(p.getSocket(), msgData, msg.length());
             if(sentData != msg.length())
                 return -1;
         }
@@ -35,28 +34,25 @@ int LowNetwork::send(const QString msg){
 
 int LowNetwork::closeNetwork(){
     int errorCount = 0;
-    for(int fd : *mClientSocketHandles)
-        if(close(fd) < 0)
+    for(Peer p : *mClients)
+        if(close(p.getSocket()) < 0)
             errorCount--;
     if(close(mServerSocketHandle) < 0)
         errorCount--;
 
-    // this is where i would need to cancel the listen() call
     mServerWaitWatcher.cancel();
+    // ensure that no accept() is currently waiting
     mServerWaitWatcher.waitForFinished();
 
     mAdress = -1;
     mPort = -1;
     mServerSocketHandle = -1;
-    mClientSocketHandles->clear();
+    mClients->clear();
 
     mConnectionState = ConnectionState::NO_CONNECTION;
 
     return errorCount;
 }
-
-
-
 
 int LowNetwork::onPoll(){
     switch(mConnectionState){
@@ -64,10 +60,10 @@ int LowNetwork::onPoll(){
         case ConnectionState::NO_CONNECTION:
             return -1337;
         case ConnectionState::SERVER:{
-                size_t clientCount = mClientSocketHandles->size();
+                size_t clientCount = mClients->size();
                 struct pollfd structs[clientCount + 1];
                 for(size_t i = 0; i < clientCount; i++){
-                    structs[i].fd = mClientSocketHandles->at(i);
+                    structs[i].fd = mClients->at(i).getSocket();
                     structs[i].events = POLLIN;
                     structs[i].revents = 0;
                 }
@@ -87,21 +83,21 @@ int LowNetwork::onPoll(){
                 if(structs[clientCount].revents & POLLIN){
                     struct sockaddr_in clientStruct;
                     unsigned int clientLength = sizeof(clientStruct);
-                    int accRetVal = accept(mServerSocketHandle, (struct sockaddr *) &clientStruct, &clientLength);
-                    emit clientConnected(accRetVal >= 0);
-                    if(accRetVal >= 0)
-                        mClientSocketHandles->push_back(accRetVal);
+                    int clientSocket = accept(mServerSocketHandle, (struct sockaddr *) &clientStruct, &clientLength);
+                    emit clientConnected(clientSocket >= 0);
+                    if(clientSocket >= 0)
+                        mClients->push_back(Peer(clientSocket));
                 }
 
-                for(size_t i = 0; i < mClientSocketHandles->size(); i++){
+                for(size_t i = 0; i < mClients->size(); i++){
                     if(structs[i].revents & POLLIN){
                         receiveCount++;
                         size_t readLength;
-                        Message m(networkToString(structs[i].fd, readLength), "not you:");
+                        Message m(networkToString(structs[i].fd, readLength), mClients->at(i));
                         if(m.isEmpty()){
                             close(structs[i].fd);
-                            mClientSocketHandles->erase(mClientSocketHandles->begin() + i);
-                            emit disconnect("A client", mClientSocketHandles->size());
+                            mClients->erase(mClients->begin() + i);
+                            emit disconnect(mClients->at(i).getName(), mClients->size());
                         }
                         else
                             emit messageReceived(m);
@@ -118,7 +114,7 @@ int LowNetwork::onPoll(){
                 }
                 if(pollingStruct[0].revents & POLLIN){
                     size_t readLength;
-                    emit messageReceived(Message(networkToString(pollingStruct[0].fd, readLength), "not you:"));
+                    emit messageReceived(Message(networkToString(pollingStruct[0].fd, readLength), Peer("Server", mServerSocketHandle)));
                     return 1;
                 }
                 return 0;
@@ -152,8 +148,6 @@ int LowNetwork::server(const QString port){
         return -4;
 
     mConnectionState = ConnectionState::SERVER;
-
-    //scheduleWaitingForClients();
 
     // successfully navigated the mine field
     return 0;
@@ -198,15 +192,4 @@ bool LowNetwork::getHostAddress(const QString hostName, unsigned long& address){
     h_addr.s_addr = *((unsigned long *) host -> h_addr_list[0]);
     address = *((unsigned long *) host -> h_addr_list[0]);
     return true;
-}
-
-int LowNetwork::waitForClients(struct sockaddr*){
-    return -1;
-}
-
-int LowNetwork::scheduleWaitingForClients(){
-    return -1;
-}
-
-void LowNetwork::onAccept(){
 }
