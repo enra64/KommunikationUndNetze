@@ -74,6 +74,7 @@ void ChatWindow::setSendingUiEnabled(bool enable){
 void ChatWindow::setConnectionUiEnabled(bool enable){
     ui->clientConnectButton->setEnabled(enable);
     ui->serverConnectButton->setEnabled(enable);
+    ui->nameEdit->setEnabled(enable);
     ui->hostText->setEnabled(enable);
     ui->portText->setEnabled(enable);
     ui->disconnectButton->setEnabled(!enable);
