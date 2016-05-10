@@ -31,8 +31,8 @@ void ChatWindow::error(QString output){
     print(output);
 }
 
-void ChatWindow::onClientConnected(bool success){
-    if(success)
+void ChatWindow::onClientConnected(NetworkError success){
+    if(success == NetworkError::ERROR_NO_ERROR)
         notify("Client connected successfully");
     else
         error("Could not accept a connection");
@@ -100,7 +100,7 @@ void ChatWindow::on_clientConnectButton_clicked()
     NetworkError status = mNetwork->client(ui->hostText->text(), ui->portText->text());
     switch(status){
         case NetworkError::MAKE_CONTACT_FAILED:
-            error("make_contact()");
+            error("make_contact() failed");
             break;
         case NetworkError::HOST_NOT_RESOLVED:
             error("Host could not be resolved");
@@ -109,13 +109,13 @@ void ChatWindow::on_clientConnectButton_clicked()
             error("Port no integer");
             break;
         case NetworkError::SOCKET_FAILED:
-            error("Port no integer");
+            error("socket() failed");
             break;
         case NetworkError::CONTACT_FAILED:
-            error("could not connect()");
+            error("connect() failed");
             break;
         case NetworkError::BIND_FAILED:
-            error("could not bind()");
+            error("bind() failed");
             break;
     case NetworkError::ACCEPT_FAILED:
     case NetworkError::AWAIT_CONTACT_FAILED:
@@ -202,7 +202,7 @@ void ChatWindow::loadNetwork(bool kn)
         mNetwork = new LowNetwork(this);
 
     QObject::connect(mNetwork, SIGNAL(messageReceived(Message)), this, SLOT(onMessageReceived(Message)));
-    QObject::connect(mNetwork, SIGNAL(clientConnected(bool)), this, SLOT(onClientConnected(bool)));
+    QObject::connect(mNetwork, SIGNAL(clientConnected(NetworkError)), this, SLOT(onClientConnected(NetworkError)));
     QObject::connect(mNetwork, SIGNAL(disconnect(QString, int)), this, SLOT(onDisconnect(QString, int)));
     QObject::connect(mNetwork, SIGNAL(closed(int)), this, SLOT(onNetworkClosed(int)));
 

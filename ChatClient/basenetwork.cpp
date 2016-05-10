@@ -100,9 +100,14 @@ int BaseNetwork::onPoll(){
                     struct sockaddr_in clientStruct;
                     unsigned int clientLength = sizeof(clientStruct);
                     int clientSocket = accept(mServerSocketHandle, (struct sockaddr *) &clientStruct, &clientLength);
-                    emit clientConnected(clientSocket >= 0);
-                    if(clientSocket >= 0)
+
+                    if(clientSocket < 0){
+                        clientConnected(NetworkError::ACCEPT_FAILED);
+                    }
+                    else{
+                        clientConnected(NetworkError::ERROR_NO_ERROR);
                         mClients->push_back(Peer(clientSocket));
+                    }
                 }
 
                 return receiveCount;

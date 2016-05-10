@@ -2,7 +2,7 @@
 #define MESSAGE_H
 
 #include <QString>
-#include "client.h"
+#include "peer.h"
 
 class Message
 {

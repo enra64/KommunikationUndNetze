@@ -46,7 +46,7 @@ public:
     virtual NetworkError client(const QString host, const QString port);
     ConnectionState getConnectionState();
 signals:
-    void clientConnected(bool success);
+    void clientConnected(NetworkError error);
     void disconnect(QString name, int remainingNetworkConnections);
     void messageReceived(Message msg);
     void closed(int status);
