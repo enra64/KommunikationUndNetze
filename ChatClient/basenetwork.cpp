@@ -47,94 +47,104 @@ bool BaseNetwork::parsePort(const QString port, short& shortPort){
     return portIsInt;
 }
 
-QString BaseNetwork::networkToString(int fd, size_t& rLength){
-    rLength = read(fd, mBuffer, sizeof(mBuffer));
-    mBuffer[rLength] = '\0';
+QString BaseNetwork::networkToString(int fd, size_t* rLength){
+    size_t readLength = read(fd, mBuffer, sizeof(mBuffer));
+    mBuffer[readLength] = '\0';
+    if(rLength != nullptr)
+        *rLength = readLength;
     return QString(mBuffer);
 }
 
-int BaseNetwork::onPoll(){
-    switch(mConnectionState){
-        case ConnectionState::NOT_SET:
-        case ConnectionState::NO_CONNECTION:
-            return -1337;
-        case ConnectionState::SERVER:{
-                size_t clientCount = mClients->size();
-                struct pollfd structs[clientCount + 1];
-                int receiveCount = 0;
+void BaseNetwork::checkForNewClients(struct pollfd structs[], int clientCount){
+    // check for new clients now that we cant fuck up the vector anymore
+    if(structs[clientCount].revents & POLLIN){
+        struct sockaddr_in clientStruct;
+        unsigned int clientLength = sizeof(clientStruct);
+        int clientSocket = accept(mServerSocketHandle, (struct sockaddr *) &clientStruct, &clientLength);
 
-                for(size_t i = 0; i < clientCount; i++){
-                    structs[i].fd = mClients->at(i).getSocket();
-                    structs[i].events = POLLIN;
-                    structs[i].revents = 0;
-                }
-
-                // check whether we have any new connections
-                structs[clientCount].fd = mServerSocketHandle;
-                structs[clientCount].events = POLLIN;
-                structs[clientCount].revents = 0;
-
-                if(poll(structs, clientCount + 1, 2) < 0){
-                    emit disconnect("Everything", 0);
-                    closeNetwork();
-                    return -1;
-                }
-
-                for(size_t i = 0; i < clientCount; i++){
-                    if(structs[i].revents & POLLIN){
-                        receiveCount++;
-                        size_t readLength;
-                        Message m(networkToString(structs[i].fd, readLength), mClients->at(i));
-                        if(m.isEmpty()){
-                            close(structs[i].fd);
-                            emit disconnect(mClients->at(i).getName(), mClients->size() - 1);
-                            mClients->erase(mClients->begin() + i);
-                        }
-                        else
-                            emit messageReceived(m);
-                    }
-                }
-
-                // check for new clients now that we cant fuck up the vector anymore
-                if(structs[clientCount].revents & POLLIN){
-                    struct sockaddr_in clientStruct;
-                    unsigned int clientLength = sizeof(clientStruct);
-                    int clientSocket = accept(mServerSocketHandle, (struct sockaddr *) &clientStruct, &clientLength);
-
-                    if(clientSocket < 0){
-                        clientConnected(NetworkError::ACCEPT_FAILED);
-                    }
-                    else{
-                        clientConnected(NetworkError::ERROR_NO_ERROR);
-                        mClients->push_back(Peer(clientSocket));
-                    }
-                }
-
-                return receiveCount;
+        if(clientSocket < 0){
+            clientConnected(NetworkError::ACCEPT_FAILED);
         }
-        case ConnectionState::CLIENT:{
-                struct pollfd pollingStruct[1] = {{mServerSocketHandle, POLLIN, 0}};
-                if(poll(pollingStruct, 1, 2) < 0){
-                    emit disconnect("The server", 0);
-                    closeNetwork();
-                    return -1;
-                }
-                if(pollingStruct[0].revents & POLLIN){
-                    size_t readLength;
-                    Message m(networkToString(pollingStruct[0].fd, readLength), Peer("Server", mServerSocketHandle));
-                    if(readLength > 0)
-                        emit messageReceived(m);
-                    else{
-                        emit disconnect("The server", 0);
-                        closeNetwork();
-                        return -1;
-                    }
-                    return 1;
-                }
-                return 0;
+        else{
+            clientConnected(NetworkError::ERROR_NO_ERROR);
+            mClients->push_back(Peer(clientSocket));
         }
     }
-    return -18;
+}
+
+void BaseNetwork::onPoll(){
+    switch(mConnectionState){
+        case ConnectionState::SERVER:{
+            // constantly need this shit
+            size_t clientCount = mClients->size();
+
+            // check client sockets + server socket for new connections
+            struct pollfd structs[clientCount + 1];
+
+            // fill polling struct array
+            for(size_t i = 0; i < clientCount + 1; i++){
+                structs[i].fd = i < clientCount ? mClients->at(i).getSocket() : mServerSocketHandle;
+                structs[i].events = POLLIN;
+                structs[i].revents = 0;
+            }
+
+            // run around screaming if we cant poll
+            if(poll(structs, clientCount + 1, 2) < 0){
+                // -> Polling error, everything disconnected!
+                emit disconnect("Polling error, everything", 0);
+                // close everything else
+                closeNetwork();
+                return;
+            }
+
+            for(size_t i = 0; i < clientCount; i++){
+                if(structs[i].revents & POLLIN){
+                    // create message object on stack
+                    Message m(networkToString(structs[i].fd, nullptr), mClients->at(i));
+
+                    // if the message is empty, we know a dc happened
+                    if(m.isEmpty()){
+                        // gracefully close socket
+                        close(structs[i].fd);
+                        // notify lib user
+                        emit disconnect(mClients->at(i).getName(), mClients->size() - 1);
+                        // remove peer from list
+                        mClients->erase(mClients->begin() + i);
+                    }
+                    else
+                        // copy our message to the lib user
+                        emit messageReceived(m);
+                }
+            }
+
+            // check for new clients
+            checkForNewClients(structs, clientCount);
+            return;
+        }
+        case ConnectionState::CLIENT:{
+            struct pollfd pollingStruct[1] = {{mServerSocketHandle, POLLIN, 0}};
+
+            // can we poll?
+            if(poll(pollingStruct, 1, 2) < 0){
+                emit disconnect("The server", 0);
+                closeNetwork();
+            }
+            else if(pollingStruct[0].revents & POLLIN){// yes we can
+                // create new message
+                Message m(networkToString(pollingStruct[0].fd, nullptr), Peer("Server", mServerSocketHandle));
+
+                //message valid?
+                if(!m.isEmpty())
+                    emit messageReceived(m);
+                else{
+                    emit disconnect("The server", 0);
+                    closeNetwork();
+                }
+            }
+        }
+        default:
+            return;
+    }
 }
 
 NetworkError BaseNetwork::client(const QString, const QString){
