@@ -20,9 +20,9 @@ void HighNetwork::onAccept(){
     clientConnected(mClients->size());
 }
 
-int HighNetwork::server(const QString port) {
+NetworkError HighNetwork::server(const QString port) {
     if(!parsePort(port, mPort))
-        return -1;
+        return NetworkError::PORT_NO_INTEGER;
 
     mServerWaitWatcher.cancel();
 
@@ -33,21 +33,22 @@ int HighNetwork::server(const QString port) {
 
     mServerWaitWatcher.setFuture(future);
 
-    return 0;
+    return NetworkError::ERROR_NO_ERROR;
 }
 
-int HighNetwork::client(const QString host, const QString port) {
+NetworkError HighNetwork::client(const QString host, const QString port) {
     if(!parsePort(port, mPort))
-        return -1;
+        return NetworkError::PORT_NO_INTEGER;
 
     mHost = cname_to_comp(host.toLatin1().data());
 
     if(mHost == -1)
-        return -2;
+        return NetworkError::HOST_NOT_RESOLVED;
 
-    mServerSocketHandle = make_contact(mHost, mPort);
+    if((mServerSocketHandle = make_contact(mHost, mPort)) < 0)
+        return NetworkError::MAKE_CONTACT_FAILED;
 
     mConnectionState = ConnectionState::CLIENT;
 
-    return mServerSocketHandle;
+    return NetworkError::ERROR_NO_ERROR;
 }

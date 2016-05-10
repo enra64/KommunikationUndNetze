@@ -97,25 +97,38 @@ void ChatWindow::on_sendButton_clicked()
 
 void ChatWindow::on_clientConnectButton_clicked()
 {
-    int status;
-    switch(status = mNetwork->client(ui->hostText->text(), ui->portText->text())){
-        default:
-            notify("Connected to server");
+    NetworkError status = mNetwork->client(ui->hostText->text(), ui->portText->text());
+    switch(status){
+        case NetworkError::MAKE_CONTACT_FAILED:
+            error("make_contact()");
             break;
-        case -1:
-            error("Port no integer");
-            break;
-        case -2:
+        case NetworkError::HOST_NOT_RESOLVED:
             error("Host could not be resolved");
             break;
-        case -3:
-            error("Could not socket()");
+        case NetworkError::PORT_NO_INTEGER:
+            error("Port no integer");
             break;
-        case -4:
+        case NetworkError::SOCKET_FAILED:
+            error("Port no integer");
+            break;
+        case NetworkError::CONTACT_FAILED:
             error("could not connect()");
+            break;
+        case NetworkError::BIND_FAILED:
+            error("could not bind()");
+            break;
+    case NetworkError::ACCEPT_FAILED:
+    case NetworkError::AWAIT_CONTACT_FAILED:
+    case NetworkError::LISTEN_FAILED:
+        error("got a server error when using client()?");
         break;
+    case NetworkError::ERROR_NO_ERROR:
+        notify("Connected to server!");
+        break;
+    default:
+        error("Unknown error occured");
     }
-    connectionStatus(status >= 0);
+    connectionStatus(status == NetworkError::ERROR_NO_ERROR);
 }
 
 void ChatWindow::closeEvent(QCloseEvent *bar)
@@ -126,27 +139,37 @@ void ChatWindow::closeEvent(QCloseEvent *bar)
 
 void ChatWindow::on_serverConnectButton_clicked()
 {
-    int status;
-    switch(status = mNetwork->server(ui->portText->text())){
-        case -1:
-            error("Port no integer!");
+    NetworkError status = mNetwork->server(ui->portText->text());
+    switch(status){
+        case NetworkError::AWAIT_CONTACT_FAILED:
+            error("make_contact()");
             break;
-        case -2:
-            error("Could not do socket()");
+        case NetworkError::LISTEN_FAILED:
+            error("Could not listen");
             break;
-        case -3:
+        case NetworkError::PORT_NO_INTEGER:
+            error("Port no integer");
+            break;
+        case NetworkError::SOCKET_FAILED:
+            error("could not socket()");
+            break;
+        case NetworkError::BIND_FAILED:
             error("could not bind()");
             break;
-        case -4:
-            error("could not listen()");
+        case NetworkError::ACCEPT_FAILED:
+            error("could not accpt()");
             break;
-        case -5:
-            error("could not accept() incoming connection");
+        case NetworkError::MAKE_CONTACT_FAILED:
+        case NetworkError::HOST_NOT_RESOLVED:
+            error("got a client error when using server()?");
+            break;
+        case NetworkError::ERROR_NO_ERROR:
+            notify("Server started!");
             break;
         default:
-            print("waiting for a connection");
+            error("Unknown error occured");
     }
-    connectionStatus(status >= 0);
+    connectionStatus(status == NetworkError::ERROR_NO_ERROR);
 }
 
 void ChatWindow::on_sendText_returnPressed()

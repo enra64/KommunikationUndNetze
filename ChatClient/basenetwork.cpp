@@ -14,9 +14,11 @@ BaseNetwork::BaseNetwork(QObject *parent) : QObject(parent)
 
 int BaseNetwork::closeNetwork(){
     int errorCount = 0;
+
     for(Peer p : *mClients)
         if(close(p.getSocket()) < 0)
             errorCount--;
+
     if(close(mServerSocketHandle) < 0)
         errorCount--;
 
@@ -130,8 +132,8 @@ int BaseNetwork::onPoll(){
     return -18;
 }
 
-int BaseNetwork::client(const QString, const QString){
-    return -1234;
+NetworkError BaseNetwork::client(const QString, const QString){
+    return (NetworkError) -1;
 }
 
 ConnectionState BaseNetwork::getConnectionState()
@@ -139,8 +141,8 @@ ConnectionState BaseNetwork::getConnectionState()
     return mConnectionState;
 }
 
-int BaseNetwork::server(const QString){
-    return -1234;
+NetworkError BaseNetwork::server(const QString){
+    return (NetworkError) -1;
 }
 
 int BaseNetwork::send(const QString msg){

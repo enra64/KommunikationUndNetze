@@ -9,11 +9,11 @@ LowNetwork::~LowNetwork(){
     delete mClients;
 }
 
-int LowNetwork::server(const QString port){
+NetworkError LowNetwork::server(const QString port){
     bool validPort;
     short shortport = port.toShort(&validPort);
     if(!validPort)
-        return -1;
+        return NetworkError::PORT_NO_INTEGER;
 
     mHost = htonl(INADDR_ANY);
 
@@ -21,49 +21,49 @@ int LowNetwork::server(const QString port){
     mServerSocketHandle = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 
     if(mServerSocketHandle < 0)
-        return -2;
+        return NetworkError::SOCKET_FAILED;
 
     serverStruct.sin_family = AF_INET;
     serverStruct.sin_port = htons(shortport);
     serverStruct.sin_addr.s_addr = mHost;
 
     if(bind(mServerSocketHandle, (struct sockaddr *) &serverStruct, sizeof(serverStruct)) < 0)
-        return -3;
+        return NetworkError::BIND_FAILED;
 
     if(listen(mServerSocketHandle, 4) < 0)
-        return -4;
+        return NetworkError::LISTEN_FAILED;
 
     mConnectionState = ConnectionState::SERVER;
 
     // successfully navigated the mine field
-    return 0;
+    return NetworkError::ERROR_NO_ERROR;
 }
 
-int LowNetwork::client(const QString host, const QString port){
+NetworkError LowNetwork::client(const QString host, const QString port){
     bool validPort;
     short shortport = port.toShort(&validPort);
 
     if(!validPort)
-        return -1;
+        return NetworkError::PORT_NO_INTEGER;
 
     if(!getHostAddress(host, mHost))
-        return -2;
+        return NetworkError::HOST_NOT_RESOLVED;
 
     struct sockaddr_in peerDescription;
     mServerSocketHandle = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
     if(mServerSocketHandle < 0)
-        return -3;
+        return NetworkError::SOCKET_FAILED;
 
     peerDescription.sin_family = AF_INET;
     peerDescription.sin_port = htons(shortport);
     peerDescription.sin_addr.s_addr = mHost;
 
     if(Connector::myConnect(mServerSocketHandle, (struct sockaddr *) &peerDescription, sizeof(peerDescription)) < 0)
-        return -4;
+        return NetworkError::CONTACT_FAILED;
 
     mConnectionState = ConnectionState::CLIENT;
 
-    return 0;
+    return NetworkError::ERROR_NO_ERROR;
 }
 
 bool LowNetwork::getHostAddress(const QString hostName, long& address){

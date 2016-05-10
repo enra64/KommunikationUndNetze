@@ -20,8 +20,8 @@ class HighNetwork : public BaseNetwork
     Q_OBJECT
 public:
     HighNetwork(QObject *parent = 0);
-    int server(const QString port) override;
-    int client(const QString host, const QString port) override;
+    NetworkError server(const QString port) override;
+    NetworkError client(const QString host, const QString port) override;
 protected slots:
     void onAccept();
 private:

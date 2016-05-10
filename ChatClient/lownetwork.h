@@ -23,8 +23,8 @@ class LowNetwork : public BaseNetwork
 public:
     LowNetwork(QObject *parent = 0);
     ~LowNetwork();
-    int server(const QString port) override;
-    int client(const QString host, const QString port) override;
+    NetworkError server(const QString port) override;
+    NetworkError client(const QString host, const QString port) override;
 private:
     bool getHostAddress(const QString hostName, long& hostInt);
 };

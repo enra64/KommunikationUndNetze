@@ -22,6 +22,19 @@ enum struct ConnectionState{
     NOT_SET
 };
 
+enum struct NetworkError{
+    ERROR_NO_ERROR,
+    PORT_NO_INTEGER,
+    AWAIT_CONTACT_FAILED,
+    BIND_FAILED,
+    LISTEN_FAILED,
+    ACCEPT_FAILED,
+    SOCKET_FAILED,
+    CONTACT_FAILED,
+    HOST_NOT_RESOLVED,
+    MAKE_CONTACT_FAILED
+};
+
 class BaseNetwork : public QObject
 {
     Q_OBJECT
@@ -29,8 +42,8 @@ public:
     explicit BaseNetwork(QObject *parent = 0);
     int closeNetwork();
     int send(const QString msg);
-    virtual int server(const QString port);
-    virtual int client(const QString host, const QString port);
+    virtual NetworkError server(const QString port);
+    virtual NetworkError client(const QString host, const QString port);
     ConnectionState getConnectionState();
 signals:
     void clientConnected(bool success);
