@@ -15,9 +15,15 @@ int HighNetwork::asyncWaitForClients(struct sockaddr*){
 }
 
 void HighNetwork::onAccept(){
-    mClients->push_back(Peer(mServerWaitWatcher.result()));
-    mServerSocketHandle = get_server_socket(mPort);
-    clientConnected(mClients->size());
+    int clientSocket = mServerWaitWatcher.result();
+    if(clientSocket < 0){
+        clientConnected(NetworkError::AWAIT_CONTACT_FAILED);
+    }
+    else{
+        mClients->push_back(Peer(mServerWaitWatcher.result()));
+        mServerSocketHandle = get_server_socket(mPort);
+        clientConnected(NetworkError::ERROR_NO_ERROR);
+    }
 }
 
 NetworkError HighNetwork::server(const QString port) {

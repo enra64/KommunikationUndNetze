@@ -15,7 +15,7 @@
 #include "compilerdistractor.h"
 
 #include "basenetwork.h"
-#include "client.h"
+#include "peer.h"
 
 class LowNetwork : public BaseNetwork
 {

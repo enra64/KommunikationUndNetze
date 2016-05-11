@@ -1,4 +1,4 @@
-#include "client.h"
+#include "peer.h"
 
 Peer::Peer(QString name, int socket) : mSocket(socket), mName(name)
 {

@@ -46,15 +46,15 @@ public:
     virtual NetworkError client(const QString host, const QString port);
     ConnectionState getConnectionState();
 signals:
-    void clientConnected(bool success);
+    void clientConnected(NetworkError error);
     void disconnect(QString name, int remainingNetworkConnections);
     void messageReceived(Message msg);
     void closed(int status);
 protected slots:
-    int onPoll();
+    void onPoll();
 protected:
     ConnectionState mConnectionState = ConnectionState::NOT_SET;
-    QString networkToString(int fd, size_t& receiveLength);
+    QString networkToString(int fd, size_t *receiveLength);
     bool parsePort(const QString port, short& shortPort);
     QFutureWatcher<int> mServerWaitWatcher;
     std::vector<Peer>* mClients;
@@ -63,6 +63,7 @@ protected:
     char mBuffer[1024];
     short mPort;
     long mHost;
+    void checkForNewClients(struct pollfd structs[], int clientCount);
 private:
     QTimer* mTimer;
 };
