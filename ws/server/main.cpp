@@ -1,5 +1,8 @@
 #include <iostream>
 
+#include "header.h"
+
+#include <vector>
 #include <cstring>
 #include <unistd.h>
 #include <netinet/in.h>
@@ -63,8 +66,40 @@ int sendall(int s, char *buf, int *len)
     return tempBytesSent == -1 ? -1 : 0; // return -1 on failure, 0 on success
 }
 
-void parseHeaders(vector<string>& singleHeaderList, string& header){
+string parsePath(string line){
+    // find end of requested file path
+    size_t httpLoc = line.find(" HTTP/");
 
+    // truncate to path
+    line.resize(httpLoc);
+
+    // remove GET and prepend htdocs
+    string path = "htdocs" + string(line, 4);
+
+    // send index if no file is specified
+    if(path.length() == 7)
+        path = "htdocs/index.html";
+
+    return path;
+}
+
+void parseHeaders(vector<Header>& singleHeaderList, string& header){
+    size_t delimiterPosition;
+    while((delimiterPosition = header.find("\r\n")) != string::npos){
+        string line = header.substr(0, delimiterPosition);
+        if(line.find("GET ") == 0){
+            singleHeaderList.push_back(Header("GET", parsePath(line)));
+        }
+        else{
+            size_t seperatorPosition = line.find(":");
+            if(seperatorPosition != string::npos){
+                Header h(line.substr(0, seperatorPosition), line.substr(seperatorPosition + 2, string::npos));
+                singleHeaderList.push_back(h);
+            }
+        }
+
+        header.erase(0, delimiterPosition + 2);
+    }
 }
 
 string& readCompleteHeader(int clientSocket){
@@ -83,65 +118,67 @@ string& readCompleteHeader(int clientSocket){
     return result;
 }
 
+int answerRequest(FILE* file, int clientSocket,  const Header& GETHeader){
+    if(file == NULL){
+        cout << "could not find file: " << GETHeader.getValue() << endl;
+        return -1;
+    }
+    string responseHeader("HTTP/1.1 200 OK\r\n\r\n");
+
+    if(file == NULL){
+        responseHeader = "HTTP/1.1 404\r\n\r\n";
+    }
+
+    if(send(clientSocket, responseHeader.data(), responseHeader.length(), 0) < 0)
+        cout << "yeah well the header wont get sent" << endl;
+
+    // write file to network
+    int readSize;
+    do{
+        //read from file
+        readSize = fread(
+                    buffer,
+                    1,
+                    sizeof(buffer),
+                    file);
+
+        // completely read file
+        if(readSize <= 0)
+            break;
+
+        // try to send everything in that buffer
+        if(sendall(clientSocket, buffer, &readSize) == -1)
+            cout << "could only send" << readSize << endl;
+
+
+    // write while we read complete pages out of the buffer
+    } while(readSize == sizeof(buffer));
+
+    // should be < 1 if the last transfer failed
+    return readSize;
+}
+
 void clientConnected(NetworkError e, int clientSocket){
     if(e == NetworkError::ERROR_NO_ERROR){
-        int readSize = read(clientSocket, buffer, sizeof(buffer));
+        // read the full header
+        string& completeHeader = readCompleteHeader(clientSocket);
 
-        // is this a get-request?
-        if(!(buffer[0] == 'G' && buffer[1] == 'E' && buffer[2] == 'T')){
+        // prepare some space for the headers
+        vector<Header> headers;
+
+        // parse the header
+        parseHeaders(headers, completeHeader);
+
+        if(headers.at(0).getField() != "GET"){
             write(clientSocket, "are you a browser?", 18);
             close(clientSocket);
             return;
         }
 
-        // create string from request
-        string request(buffer, readSize);
-
-        // find end of requested file path
-	    size_t httpLoc = request.find(" HTTP/");
-
-        // cannot find end of path
-        if(httpLoc == string::npos){
-            write(clientSocket, "404", 3);
-            close(clientSocket);
-            cout << "could not find HTTP/" << endl;
-            return;
-        }
-
-        // truncate to path
-        request.resize(httpLoc);
-
-        // remove GET and prepend htdocs
-        string path = "htdocs" + string(request, 4);
-
-        // send index if no file is specified
-        if(path.length() == 7)
-            path = "htdocs/index.html";
-
         // open the file
-        FILE* file = fopen(path.data(), "r");
+        FILE* file = fopen(headers.at(0).getValue().c_str(), "r");
 
-        if(file == NULL){
-            cout << "could not find file: " << request << endl;
-            return;
-        }
-
-        // write file to network
-        do{
-            //read from file
-            readSize = fread(buffer, 1, sizeof(buffer), file);
-
-            // completely read file
-            if(readSize <= 0)
-                break;
-
-            // try to send everything in that buffer
-            if(sendall(clientSocket, buffer, &readSize) == -1){
-                cout << "could only send" << readSize << endl;
-            }
-
-        // write while we read complete pages out of the buffer
-        } while(readSize == sizeof(buffer));
+        answerRequest(file, clientSocket, headers.at(0));
 
         if(file != NULL)
             fclose(file);
