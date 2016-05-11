@@ -1,0 +1,3 @@
+/run/media/arne/data/Studium/Semester 4/KN/webserver qt c/webserver/CMakeFiles/edit_cache.dir
+/run/media/arne/data/Studium/Semester 4/KN/webserver qt c/webserver/CMakeFiles/rebuild_cache.dir
+/run/media/arne/data/Studium/Semester 4/KN/webserver qt c/webserver/CMakeFiles/webserver.dir

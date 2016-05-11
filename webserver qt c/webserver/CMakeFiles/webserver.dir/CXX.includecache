@@ -1,0 +1,24 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/run/media/arne/data/Studium/Semester 4/KN/webserver qt c/webserver/main.cpp
+iostream
+-
+cstring
+-
+unistd.h
+-
+netinet/in.h
+-
+poll.h
+-
+sys/socket.h
+-
+sys/types.h
+-
+
