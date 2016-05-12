@@ -4,7 +4,12 @@ CONFIG -= app_bundle
 CONFIG -= qt
 
 SOURCES += main.cpp \
-    header.cpp
+    header.cpp \
+    requestresponder.cpp
 
 HEADERS += \
-    header.h
+    header.h \
+    requestresponder.h \
+    enums.h
+
+LIBS += -lpthread

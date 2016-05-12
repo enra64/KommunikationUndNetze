@@ -1,8 +1,11 @@
 #include <iostream>
 
 #include "header.h"
+#include "enums.h"
+#include "requestresponder.h"
 
 #include <vector>
+#include <thread>
 #include <cstring>
 #include <unistd.h>
 #include <netinet/in.h>
@@ -16,29 +19,7 @@ short mPort;
 unsigned long mHost;
 int mServerSocket;
 
-char buffer[1024];
-
-enum struct ResponseType{
-    NOT_FOUND,
-    BAD_REQUEST,
-    OK
-};
-
-enum struct NetworkEvent{
-    POLLING_ERROR,
-    NO_ERROR
-};
-
-enum struct NetworkError{
-    ERROR_NO_ERROR,
-    PORT_NO_INTEGER,
-    BIND_FAILED,
-    LISTEN_FAILED,
-    ACCEPT_FAILED,
-    SOCKET_FAILED,
-    POLL_FAILED,
-    SET_SOCK_OPT_FAILED
-};
+vector<thread> mResponderThreads;
 
 int closeNetwork(){
     int err = 0;
@@ -53,156 +34,9 @@ int closeNetwork(){
     return err;
 }
 
-int sendall(int s, char *buf, int *len){
-    int sentBytes = 0;        // how many bytes we've sent
-    int bytesLeftToSend = *len; // how many we have left to send
-    int tempBytesSent;
-
-    while(sentBytes < *len) {
-        tempBytesSent = send(s, buf+sentBytes, bytesLeftToSend, 0);
-        if (tempBytesSent == -1)
-            break;
-        sentBytes += tempBytesSent;
-        bytesLeftToSend -= tempBytesSent;
-    }
-
-    *len = sentBytes; // return number actually sent here
-
-    return tempBytesSent == -1 ? -1 : 0; // return -1 on failure, 0 on success
-}
-
-string parsePath(string line){
-    // find end of requested file path
-    size_t httpLoc = line.find(" HTTP/");
-
-    // truncate to path
-    line.resize(httpLoc);
-
-    // remove GET and prepend htdocs
-    string path = "htdocs" + string(line, 4);
-
-    // send index if no file is specified
-    if(path.length() == 7)
-        path = "htdocs/index.html";
-
-    return path;
-}
-
-void parseHeaders(vector<Header>& singleHeaderList, string& header, bool& headerOk){
-    size_t delimiterPosition;
-    while((delimiterPosition = header.find("\r\n")) != string::npos){
-        string line = header.substr(0, delimiterPosition);
-        if(line.find("GET ") == 0)
-            singleHeaderList.push_back(Header("GET", parsePath(line)));
-        else
-            singleHeaderList.push_back(Header(line));
-        header.erase(0, delimiterPosition + 2);
-    }
-    headerOk = singleHeaderList.size() > 0;
-}
-
-string readCompleteHeader(int clientSocket, bool& goodHeader){
-    int readSize;
-    string result;
-    do {
-        readSize = recv(clientSocket, buffer, sizeof(buffer), 0);
-
-        // 0 -> peer closed connection, otherwise errors
-        if(readSize <= 0)
-            break;
-
-        result += string(buffer, readSize);
-    // check whether we have filled the buffer, faster than checking for double clrf
-    } while (readSize == sizeof(buffer));
-
-    goodHeader = (string(result, result.length() - (result.length() < 4 ? result.length() : 4)) == "\r\n\r\n");
-
-    return result;
-}
-
-string getResponseHeader(ResponseType status){
-    switch(status){
-        case ResponseType::BAD_REQUEST:
-            cout << "bad request" << endl;
-            return "HTTP/1.0 400 Bad Request\r\n\r\n";
-        case ResponseType::OK:
-            cout << "ok request" << endl;
-            return "HTTP/1.0 200 OK\r\n\r\n";
-        case ResponseType::NOT_FOUND:
-            cout << "not found request" << endl;
-            return "HTTP/1.0 404 NOT FOUND\r\n\r\n";
-    }
-    return "rip\r\n\r\n";
-}
-
-void sendResponseHeader(ResponseType type, int socket){
-    string responseHeader = getResponseHeader(type);
-    if(send(socket, responseHeader.data(), responseHeader.length(), 0) < 0)
-        cout << "yeah well the header wont get sent" << endl;
-}
-
-int answerRequest(FILE* file, int clientSocket,  const Header& GETHeader){
-    sendResponseHeader(file == NULL ? ResponseType::NOT_FOUND : ResponseType::OK, clientSocket);
-
-    // write file to network
-    int readSize;
-    do{
-        //read from file
-        readSize = fread(
-                    buffer,
-                    1,
-                    sizeof(buffer),
-                    file);
-
-        // completely read file
-        if(readSize <= 0)
-            break;
-
-        // try to send everything in that buffer
-        if(sendall(clientSocket, buffer, &readSize) == -1)
-            cout << "could only send" << readSize << endl;
-
-
-    // write while we read complete pages out of the buffer
-    } while(readSize == sizeof(buffer));
-
-    // should be < 1 if the last transfer failed
-    return readSize;
-}
-
-void clientConnected(NetworkError e, int clientSocket){
-    if(e == NetworkError::ERROR_NO_ERROR){
-        // read the full header
-        bool headerOk;
-        string completeHeader = readCompleteHeader(clientSocket, headerOk);
-
-        if(!headerOk){
-            sendResponseHeader(ResponseType::BAD_REQUEST, clientSocket);
-            close(clientSocket);
-            return;
-        }
-
-        // prepare some space for the headers
-        vector<Header> headers;
-
-        // parse the header
-        parseHeaders(headers, completeHeader, headerOk);
-
-        if(!headerOk || headers.size() <= 0 || headers.at(0).getField() != "GET"){
-            sendResponseHeader(ResponseType::BAD_REQUEST, clientSocket);
-            close(clientSocket);
-            return;
-        }
-
-        // open the file
-        FILE* file = fopen(headers.at(0).getValue().c_str(), "r");
-
-        answerRequest(file, clientSocket, headers.at(0));
-
-        if(file != NULL)
-            fclose(file);
-    }
-    close(clientSocket);
+void respond(int socket){
+    RequestResponder responder(socket);
+    responder.respond();
 }
 
 NetworkEvent poll(){
@@ -222,12 +56,7 @@ NetworkEvent poll(){
         unsigned int clientLength = sizeof(clientStruct);
         int clientSocket = accept(mServerSocket, (struct sockaddr *) &clientStruct, &clientLength);
 
-        if(clientSocket < 0){
-            clientConnected(NetworkError::ACCEPT_FAILED, -1);
-        }
-        else{
-            clientConnected(NetworkError::ERROR_NO_ERROR, clientSocket);
-        }
+        mResponderThreads.push_back(thread(respond, clientSocket));
     }
     return NetworkEvent::NO_ERROR;
 }
@@ -263,14 +92,16 @@ NetworkError server(int argc, char *argv[]){
     if(listen(mServerSocket, 200) < 0)
         return NetworkError::LISTEN_FAILED;
 
-
-
     while(1){
         if(poll() != NetworkEvent::NO_ERROR){
             closeNetwork();
             return NetworkError::POLL_FAILED;
         }
     }
+
+    cout << "joining threads" << endl;
+    for(int i = 0; i < mResponderThreads.size(); i++)
+        mResponderThreads[i].join();
 }
 
 int main(int argc, char *argv[])
