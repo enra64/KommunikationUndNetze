@@ -7,6 +7,7 @@ class Header
 {
 public:
     Header();
+    Header(std::string line);
     Header(std::string field, std::string value);
     std::string getField() const;
     std::string getValue() const;

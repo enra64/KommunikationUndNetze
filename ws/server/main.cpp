@@ -16,7 +16,7 @@ short mPort;
 unsigned long mHost;
 int mServerSocket;
 
-char buffer[4096];
+char buffer[25];
 
 enum struct NetworkEvent{
     POLLING_ERROR,
@@ -47,8 +47,7 @@ int closeNetwork(){
     return err;
 }
 
-int sendall(int s, char *buf, int *len)
-{
+int sendall(int s, char *buf, int *len){
     int sentBytes = 0;        // how many bytes we've sent
     int bytesLeftToSend = *len; // how many we have left to send
     int tempBytesSent;
@@ -87,17 +86,10 @@ void parseHeaders(vector<Header>& singleHeaderList, string& header){
     size_t delimiterPosition;
     while((delimiterPosition = header.find("\r\n")) != string::npos){
         string line = header.substr(0, delimiterPosition);
-        if(line.find("GET ") == 0){
+        if(line.find("GET ") == 0)
             singleHeaderList.push_back(Header("GET", parsePath(line)));
-        }
-        else{
-            size_t seperatorPosition = line.find(":");
-            if(seperatorPosition != string::npos){
-                Header h(line.substr(0, seperatorPosition), line.substr(seperatorPosition + 2, string::npos));
-                singleHeaderList.push_back(h);
-            }
-        }
-
+        else
+            singleHeaderList.push_back(Header(line));
         header.erase(0, delimiterPosition + 2);
     }
 }
@@ -108,12 +100,13 @@ string& readCompleteHeader(int clientSocket){
     do {
         readSize = recv(clientSocket, buffer, sizeof(buffer), 0);
 
-        // 0 -> peer closed connection, the rest: pray'n'spray
+        // 0 -> peer closed connection, otherwise errors
         if(readSize <= 0)
             break;
 
         result += string(buffer, readSize);
-    } while (readSize == sizeof(buffer));
+    // check whether we have filled the buffer, faster than checking for double clrf
+    } while (readSize == sizeof(buffer) || !(string(result, result.length() - 4) == "\r\n\r\n"));
 
     return result;
 }
@@ -126,7 +119,7 @@ int answerRequest(FILE* file, int clientSocket,  const Header& GETHeader){
     string responseHeader("HTTP/1.1 200 OK\r\n\r\n");
 
     if(file == NULL){
-        responseHeader = "HTTP/1.1 404\r\n\r\n";
+        responseHeader = "HTTP/1.1 404\r\n";
     }
 
     if(send(clientSocket, responseHeader.data(), responseHeader.length(), 0) < 0)
