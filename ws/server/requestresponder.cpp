@@ -1,29 +1,43 @@
 #include "requestresponder.h"
 
-std::string RequestResponder::readCompleteHeader(bool& goodHeader){
-    int readSize;
-    goodHeader = true;
-    std::string result;
-    do {
+bool RequestResponder::readCompleteHeader(std::string& result){
+    int readSize = 0;
+    struct pollfd pollingStruct[1] = {{mClientSocket, POLLIN, 0}};
+    int waitTime = 2;
+
+    // increase time to wait for continue up to 32 seconds
+    while((waitTime *= 2) <= 32768){
+        // data on socket?
+        if(poll(pollingStruct, 1, waitTime) < 0)
+            return false;
+
+        // wait longer if no data is there yet
+        if(!(pollingStruct[0].revents & POLLIN))
+            continue;
+
         readSize = recv(mClientSocket, mBuffer, sizeof(mBuffer), 0);
 
-        // 0 -> peer closed connection, otherwise errors
-        if(readSize <= 0)
+        // client closed connection
+        if(readSize == 0)
             break;
 
+        // append to result
         result += std::string(mBuffer, readSize);
-    // check whether we have filled the buffer, faster than checking for double clrf
-    } while (readSize == sizeof(mBuffer));
 
-    if(result.length() < 4){
-        goodHeader = false;
-        return result;
+        // read the buffer full -> avoid string comp
+        if(readSize == sizeof(mBuffer))
+            continue;
+
+        // if the current result ends with double crlf, the header is complete
+        if(result.length() >= 4 && result.find("\r\n\r\n", result.length() - 4) != std::string::npos)
+            break;
     }
 
-    if(std::string(result, result.length() - 4) != "\r\n\r\n")
-        goodHeader = false;
+    // maximum wait time reached, but the client never sent the full header
+    if(result.length() < 4 || result.find("\r\n\r\n", result.length() - 4) == std::string::npos)
+        return false;
 
-    return result;
+    return true;
 }
 
 RequestResponder::~RequestResponder()
@@ -41,12 +55,9 @@ RequestResponder::RequestResponder(int clientSocket) : mClientSocket(clientSocke
     }
 
     // read the full header
-    bool headerOk;
-    std::string completeHeader = readCompleteHeader(headerOk);
+    std::string completeHeader;
 
-    std::cout << completeHeader << std::endl;
-
-    if(!headerOk){
+    if(!readCompleteHeader(completeHeader)){
         mResponseStatus = RespondStatus::BAD_REQUEST;
         return;
     }
@@ -54,29 +65,24 @@ RequestResponder::RequestResponder(int clientSocket) : mClientSocket(clientSocke
     mHeaders = new std::vector<Header>;
 
     // parse the header
-    headerOk = Header::parseCompleteHeader(completeHeader, *mHeaders);
-
-    if(!headerOk)
+    if(!Header::parseCompleteHeader(completeHeader, *mHeaders))
         mResponseStatus = RespondStatus::BAD_REQUEST;
 }
 
 void RequestResponder::respond(){
+    FILE* requestedFile;
+    if(mResponseStatus == RespondStatus::OK)
+        requestedFile = fopen(mHeaders->at(0).getValue().c_str(), "r");
+
+    if(requestedFile == NULL)
+        mResponseStatus = RespondStatus::NOT_FOUND;
+
     sendResponseHeader();
     if(mResponseStatus == RespondStatus::OK){
-        FILE* file = getFile();
-        if(file == NULL)
-            mResponseStatus = RespondStatus::NOT_FOUND;
-        else
-            sendResponseData(file);
-        fclose(file);
+        sendResponseData(requestedFile);
+        fclose(requestedFile);
     }
     close(mClientSocket);
-    std::cout << "responded" << std::endl;
-}
-
-FILE *RequestResponder::getFile()
-{
-    return fopen(mHeaders->at(0).getValue().c_str(), "r");
 }
 
 void RequestResponder::sendResponseHeader()
@@ -109,8 +115,9 @@ int RequestResponder::sendAll(const char *buf, int len){
     int tempBytesSent;
 
     while(sentBytes < len) {
-        tempBytesSent = send(mClientSocket, buf+sentBytes, bytesLeftToSend, 0);
-        if (tempBytesSent == -1)
+        // send, ignoring client-side closed connections
+        tempBytesSent = send(mClientSocket, buf+sentBytes, bytesLeftToSend, MSG_NOSIGNAL);
+        if (tempBytesSent == EPIPE)
             break;
         sentBytes += tempBytesSent;
         bytesLeftToSend -= tempBytesSent;

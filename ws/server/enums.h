@@ -6,11 +6,6 @@ enum struct ResponseType{
     OK
 };
 
-enum struct NetworkEvent{
-    POLLING_ERROR,
-    NO_ERROR
-};
-
 enum struct NetworkError{
     ERROR_NO_ERROR,
     PORT_NO_INTEGER,

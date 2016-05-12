@@ -39,7 +39,7 @@ void respond(int socket){
     responder.respond();
 }
 
-NetworkEvent poll(){
+NetworkError poll(){
     // check client sockets + server socket for new connections
     struct pollfd pollingStruct[1] = {{mServerSocket, POLLIN, 0}};
 
@@ -47,7 +47,7 @@ NetworkEvent poll(){
     if(poll(pollingStruct, 1, -1) < 0){
         // close everything else
         closeNetwork();
-        return NetworkEvent::POLLING_ERROR;
+        return NetworkError::POLL_FAILED;
     }
 
     // check for new clients
@@ -58,7 +58,7 @@ NetworkEvent poll(){
 
         mResponderThreads.push_back(thread(respond, clientSocket));
     }
-    return NetworkEvent::NO_ERROR;
+    return NetworkError::ERROR_NO_ERROR;
 }
 
 NetworkError server(int argc, char *argv[]){
@@ -93,14 +93,14 @@ NetworkError server(int argc, char *argv[]){
         return NetworkError::LISTEN_FAILED;
 
     while(1){
-        if(poll() != NetworkEvent::NO_ERROR){
+        if(poll() != NetworkError::ERROR_NO_ERROR){
             closeNetwork();
             return NetworkError::POLL_FAILED;
         }
     }
 
     cout << "joining threads" << endl;
-    for(int i = 0; i < mResponderThreads.size(); i++)
+    for(size_t i = 0; i < mResponderThreads.size(); i++)
         mResponderThreads[i].join();
 }
 

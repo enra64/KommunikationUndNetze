@@ -26,8 +26,7 @@ public:
     void respond();
 private:
     char mBuffer[512];
-    FILE* getFile();
-    std::string readCompleteHeader(bool& goodHeader);
+    bool readCompleteHeader(std::string& result);
     int sendAll(const char* buffer, int len);
     std::vector<Header>* mHeaders = nullptr;
     RespondStatus mResponseStatus;
