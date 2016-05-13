@@ -1,38 +1,44 @@
 #ifndef REQUESTRESPONDER_H
 #define REQUESTRESPONDER_H
 
-#include "enums.h"
-#include "header.h"
+#include "httpheader.h"
+#include "rwnetwork.h"
 
 #include <iostream>
 #include <unistd.h>
+#include <thread>
 #include <netinet/in.h>
 #include <poll.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 
-enum struct RespondStatus{
-    INVALID_SOCKET,
-    BAD_REQUEST,
-    NOT_FOUND,
-    OK
+enum struct HttpStatus{
+    BAD_SOCKET,
+    NOT_FOUND = 404,
+    BAD_REQUEST = 400,
+    OK = 200
 };
 
 class RequestResponder
 {
 public:
+
+    inline static void handle(int clientSocket){
+        RequestResponder r(clientSocket);
+        r.respond();
+    }
+
+private:
     RequestResponder(int clientSocket);
     ~RequestResponder();
-private:
-    bool readCompleteHeader(std::string& result);
-    int sendAll(const char* buffer, int len);
-    std::vector<Header>* mHeaders = nullptr;
-    void sendResponseData(FILE *file);
-    RespondStatus mResponseStatus;
+
     void sendResponseHeader();
+    void respond();
+
+    std::vector<HttpHeader>* mHeaderList = nullptr;
+    HttpStatus mHttpStatus = HttpStatus::OK;
     int mClientSocket;
     char mBuffer[512];
-    void respond();
 };
 
 #endif // REQUESTRESPONDER_H
