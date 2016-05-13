@@ -23,16 +23,16 @@ class RequestResponder
 public:
     RequestResponder(int clientSocket);
     ~RequestResponder();
-    void respond();
 private:
-    char mBuffer[512];
     bool readCompleteHeader(std::string& result);
     int sendAll(const char* buffer, int len);
     std::vector<Header>* mHeaders = nullptr;
+    void sendResponseData(FILE *file);
     RespondStatus mResponseStatus;
     void sendResponseHeader();
-    void sendResponseData(FILE *file);
     int mClientSocket;
+    char mBuffer[512];
+    void respond();
 };
 
 #endif // REQUESTRESPONDER_H

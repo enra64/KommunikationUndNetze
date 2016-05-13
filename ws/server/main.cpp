@@ -36,7 +36,6 @@ int closeNetwork(){
 
 void respond(int socket){
     RequestResponder responder(socket);
-    responder.respond();
 }
 
 NetworkError poll(){

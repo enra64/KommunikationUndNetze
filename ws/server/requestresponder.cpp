@@ -5,7 +5,7 @@ bool RequestResponder::readCompleteHeader(std::string& result){
     struct pollfd pollingStruct[1] = {{mClientSocket, POLLIN, 0}};
     int waitTime = 2;
 
-    // increase time to wait for continue up to 32 seconds
+    // increase wait time to up to 32 seconds
     while((waitTime *= 2) <= 32768){
         // data on socket?
         if(poll(pollingStruct, 1, waitTime) < 0)
@@ -49,33 +49,25 @@ RequestResponder::~RequestResponder()
 RequestResponder::RequestResponder(int clientSocket) : mClientSocket(clientSocket)
 {
     mResponseStatus = RespondStatus::OK;
-    if(clientSocket < 0){
-        mResponseStatus = RespondStatus::INVALID_SOCKET;
-        return;
-    }
-
-    // read the full header
+    mHeaders = new std::vector<Header>;
     std::string completeHeader;
 
-    if(!readCompleteHeader(completeHeader)){
-        mResponseStatus = RespondStatus::BAD_REQUEST;
-        return;
-    }
-
-    mHeaders = new std::vector<Header>;
-
-    // parse the header
-    if(!Header::parseCompleteHeader(completeHeader, *mHeaders))
-        mResponseStatus = RespondStatus::BAD_REQUEST;
+    if(clientSocket < 0)
+        mResponseStatus = RespondStatus::INVALID_SOCKET;
+    else
+        if(!readCompleteHeader(completeHeader) || !Header::parseCompleteHeader(completeHeader, *mHeaders))
+            mResponseStatus = RespondStatus::BAD_REQUEST;
+    respond();
 }
 
 void RequestResponder::respond(){
     FILE* requestedFile;
-    if(mResponseStatus == RespondStatus::OK)
+    if(mResponseStatus == RespondStatus::OK){
         requestedFile = fopen(mHeaders->at(0).getValue().c_str(), "r");
 
-    if(requestedFile == NULL)
-        mResponseStatus = RespondStatus::NOT_FOUND;
+        if(requestedFile == NULL)
+            mResponseStatus = RespondStatus::NOT_FOUND;
+    }
 
     sendResponseHeader();
     if(mResponseStatus == RespondStatus::OK){

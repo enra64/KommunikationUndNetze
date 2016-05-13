@@ -1,9 +1,8 @@
 #include "header.h"
 
-Header::Header(std::string field, std::string value) : mField(field), mValue(value)
-{
-
-}
+Header::Header(std::string field, std::string value) :
+    mField(field),
+    mValue(value){}
 
 std::string Header::parsePath(std::string line){
     // find end of requested file path
