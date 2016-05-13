@@ -15,7 +15,7 @@ struct Network {
         while(sentBytes < len) {
             // send, ignoring client-side closed connections
             tempBytesSent = send(socket, buf+sentBytes, bytesLeftToSend, MSG_NOSIGNAL);
-            if (tempBytesSent == EPIPE)
+            if (tempBytesSent == EPIPE || tempBytesSent < 0)
                 break;
             sentBytes += tempBytesSent;
             bytesLeftToSend -= tempBytesSent;
@@ -25,16 +25,12 @@ struct Network {
     }
 
     static bool sendFile(FILE* file, int socket, char* buffer, int bufferLength)    {
-        int readSize = -1;
+        int readSize = 0;
 
         // write while we read complete pages out of the buffer
-        while(readSize == bufferLength) {
+        while(!feof(file) && ferror(file) == 0) {
             // read from file
             readSize = fread(buffer, 1, bufferLength, file);
-
-            // completely read file?
-            if(feof(file))
-                break;
 
             // try to send everything in that buffer
             if(sendAll(socket, buffer, readSize) < 0)
@@ -69,9 +65,8 @@ struct Network {
             }
 
             // try to read
-            if((readSize = recv(socket, buffer, bufferSize, 0)) == 0)
+            if((readSize = recv(socket, buffer, bufferSize, 0)) <= 0)
                 break;
-
 
             // append to result
             result += std::string(buffer, readSize);

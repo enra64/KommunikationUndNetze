@@ -1,1 +1,0 @@
-/usr/bin/c++    -std=c++11 -O0 -g -g   CMakeFiles/webserver.dir/main.cpp.o  -o webserver -rdynamic 

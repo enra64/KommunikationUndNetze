@@ -22,7 +22,8 @@ enum struct NetworkError{
     ACCEPT_FAILED,
     SOCKET_FAILED,
     POLL_FAILED,
-    SET_SOCK_OPT_FAILED
+    SET_SOCK_OPT_FAILED,
+    BAD_SOCKET
 };
 
 using namespace std;
@@ -36,6 +37,7 @@ void closeNetwork(){
     for(size_t i = 0; i < mResponderThreads.size(); i++)
         mResponderThreads[i].join();
     close(mServerSocket);
+    mServerSocket = -1;
 }
 
 void sig_handler(int signal){
@@ -44,9 +46,11 @@ void sig_handler(int signal){
     closeNetwork();
     exit(0);
 }
-
+//python "../../ws test/testWebserver.py" localhost 2047
 NetworkError poll(){
-   // cant poll? run around screaming.
+    if(mServerSocket < 0)
+        return NetworkError::BAD_SOCKET;
+    // cant poll? run around screaming.
     if(poll(pollingStruct, 1, -1) < 0)
         return NetworkError::POLL_FAILED;
 
@@ -119,6 +123,9 @@ int main(int argc, char *argv[])
             break;
         case NetworkError::SET_SOCK_OPT_FAILED:
             cout << "could not change socket options" << endl;
+            break;
+        case NetworkError::BAD_SOCKET:
+            cout << "invalid socket " << mServerSocket << endl;
             break;
         case NetworkError::ERROR_NO_ERROR:
             cout << "no error" << endl;
