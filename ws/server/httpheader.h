@@ -20,7 +20,7 @@ public:
     }
 
 private:
-    static std::string parsePath(std::string line);
+    static std::string parsePath(std::string &line, bool &success);
     std::string mField;
     std::string mValue;
 };

@@ -13,33 +13,38 @@ HttpHeader::HttpHeader(const std::string& field, const std::string &value) :
     mField(field),
     mValue(value){}
 
-std::string HttpHeader::parsePath(std::string line){
+std::string HttpHeader::parsePath(std::string& line, bool& success){
+    size_t httpPos = line.find(" HTTP/");
+
     // truncate to path
-    line.resize(line.find(" HTTP/"));
+    line = "htdocs" + line.substr(4, httpPos - 4);
 
-    // remove GET and prepend htdocs
-    std::string path = "htdocs" + std::string(line, 4);
+    // no http found
+    if(httpPos == std::string::npos)
+        success = false;
 
-    // send index if no file is specified
-    if(path.length() == 7)
-        path = "htdocs/index.html";
+    // "/" is the whole address
+    if(line.length() == 7)
+        return "htdocs/index.html";
 
-    return path;
+    return line;
 }
 
 bool HttpHeader::parseCompleteHeader(std::string& header, std::vector<HttpHeader>& headerList)
 {
+    // better not to try and parse that
     if(header.find("GET") != 0)
         return false;
 
     size_t delimiterPosition;
+    bool pathParsingSuccess = true;
     while((delimiterPosition = header.find("\r\n")) != std::string::npos){
         std::string line = header.substr(0, delimiterPosition);
         if(line.find("GET ") == 0)
-            headerList.push_back(HttpHeader("GET", parsePath(line)));
+            headerList.push_back(HttpHeader("GET", parsePath(line, pathParsingSuccess)));
         else
             headerList.push_back(HttpHeader(line));
         header.erase(0, delimiterPosition + 2);
     }
-    return headerList.size() > 0;
+    return pathParsingSuccess && headerList.size() > 0;
 }
