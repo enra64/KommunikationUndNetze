@@ -21,8 +21,8 @@ public:
     explicit ChatWindow(QWidget *parent = 0);
     ~ChatWindow();
 public slots:
-    void onClientConnected(NetworkError success);
-    void onDisconnect(QString name, int remainingConnections);
+    void onClientConnected(NetworkError success, Peer& newPeer);
+    void onDisconnect(Peer name, int remainingConnections);
     void onMessageReceived(Message msg);
     void onNetworkClosed(int status);
 private:

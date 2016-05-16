@@ -17,12 +17,14 @@ int HighNetwork::asyncWaitForClients(struct sockaddr*){
 void HighNetwork::onAccept(){
     int clientSocket = mServerWaitWatcher.result();
     if(clientSocket < 0){
-        clientConnected(NetworkError::AWAIT_CONTACT_FAILED);
+        static Peer p;
+        clientConnected(NetworkError::AWAIT_CONTACT_FAILED, p);
     }
     else{
-        mClients->push_back(Peer(mServerWaitWatcher.result()));
+        static Peer p(clientSocket);
+        mClients->push_back(p);
         mServerSocketHandle = get_server_socket(mPort);
-        clientConnected(NetworkError::ERROR_NO_ERROR);
+        clientConnected(NetworkError::ERROR_NO_ERROR, p);
     }
 }
 

@@ -31,16 +31,18 @@ void ChatWindow::error(QString output){
     print(output);
 }
 
-void ChatWindow::onClientConnected(NetworkError success){
-    if(success == NetworkError::ERROR_NO_ERROR)
+void ChatWindow::onClientConnected(NetworkError success, Peer& newPeer){
+    if(success == NetworkError::ERROR_NO_ERROR){
+        ui->peerList->addItem(newPeer.getName());
         notify("Client connected successfully");
+    }
     else
         error("Could not accept a connection");
 }
 
-void ChatWindow::onDisconnect(QString name, int remainingConnections)
+void ChatWindow::onDisconnect(Peer peer, int remainingConnections)
 {
-    notify(name + " disconnected!");
+    notify(peer.getName() + " disconnected!");
     if(remainingConnections == 0 && mNetwork->getConnectionState() == ConnectionState::SERVER)
         notify("Server still running, 0 clients.");
 }
@@ -203,8 +205,8 @@ void ChatWindow::loadNetwork(bool kn)
         mNetwork = new LowNetwork(this);
 
     QObject::connect(mNetwork, SIGNAL(messageReceived(Message)), this, SLOT(onMessageReceived(Message)));
-    QObject::connect(mNetwork, SIGNAL(clientConnected(NetworkError)), this, SLOT(onClientConnected(NetworkError)));
-    QObject::connect(mNetwork, SIGNAL(disconnect(QString, int)), this, SLOT(onDisconnect(QString, int)));
+    QObject::connect(mNetwork, SIGNAL(clientConnected(NetworkError, Peer&)), this, SLOT(onClientConnected(NetworkError, Peer&)));
+    QObject::connect(mNetwork, SIGNAL(disconnect(Peer, int)), this, SLOT(onDisconnect(Peer, int)));
     QObject::connect(mNetwork, SIGNAL(closed(int)), this, SLOT(onNetworkClosed(int)));
 
     setSendingUiEnabled(false);

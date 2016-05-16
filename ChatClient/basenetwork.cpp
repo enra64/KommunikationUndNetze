@@ -61,13 +61,14 @@ void BaseNetwork::checkForNewClients(struct pollfd structs[], int clientCount){
         struct sockaddr_in clientStruct;
         unsigned int clientLength = sizeof(clientStruct);
         int clientSocket = accept(mServerSocketHandle, (struct sockaddr *) &clientStruct, &clientLength);
-
         if(clientSocket < 0){
-            clientConnected(NetworkError::ACCEPT_FAILED);
+            static Peer p;
+            clientConnected(NetworkError::ACCEPT_FAILED, p);
         }
         else{
-            clientConnected(NetworkError::ERROR_NO_ERROR);
-            mClients->push_back(Peer(clientSocket));
+            static Peer p(clientSocket);
+            clientConnected(NetworkError::ERROR_NO_ERROR, p);
+            mClients->push_back(Peer(p));
         }
     }
 }
@@ -91,7 +92,8 @@ void BaseNetwork::onPoll(){
             // run around screaming if we cant poll
             if(poll(structs, clientCount + 1, 2) < 0){
                 // -> Polling error, everything disconnected!
-                emit disconnect("Polling error, everything", 0);
+                for(size_t i = 0; i < clientCount; i++)
+                    emit disconnect(mClients->at(i), 0);
                 // close everything else
                 closeNetwork();
                 return;
@@ -107,7 +109,7 @@ void BaseNetwork::onPoll(){
                         // gracefully close socket
                         close(structs[i].fd);
                         // notify lib user
-                        emit disconnect(mClients->at(i).getName(), mClients->size() - 1);
+                        emit disconnect(mClients->at(i), mClients->size() - 1);
                         // remove peer from list
                         mClients->erase(mClients->begin() + i);
                     }
@@ -126,7 +128,7 @@ void BaseNetwork::onPoll(){
 
             // can we poll?
             if(poll(pollingStruct, 1, 2) < 0){
-                emit disconnect("The server", 0);
+                emit disconnect(Peer("Server", mServerSocketHandle), 0);
                 closeNetwork();
             }
             else if(pollingStruct[0].revents & POLLIN){// yes we can
@@ -137,7 +139,7 @@ void BaseNetwork::onPoll(){
                 if(!m.isEmpty())
                     emit messageReceived(m);
                 else{
-                    emit disconnect("The server", 0);
+                    emit disconnect(Peer("Server", mServerSocketHandle), 0);
                     closeNetwork();
                 }
             }

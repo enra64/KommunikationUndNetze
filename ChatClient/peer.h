@@ -8,6 +8,7 @@ class Peer
 public:
     Peer(QString name, int socket);
     Peer(int socket);
+    Peer();
 
     inline int getSocket(){
         return mSocket;
@@ -18,6 +19,7 @@ public:
     }
 
 private:
+    bool mIsValid;
     int mSocket;
     QString mName;
 };
