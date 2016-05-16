@@ -24,11 +24,11 @@ void ChatWindow::print(QString output){
 }
 
 void ChatWindow::notify(QString output){
-    print(output);
+    ui->chatHistory->insertHtml(output.prepend("<span style=\"color:blue;\">").append("</span>"));
 }
 
 void ChatWindow::error(QString output){
-    print(output);
+    ui->chatHistory->insertHtml(output.prepend("<span style=\"color:red;\">").append("</span>"));
 }
 
 void ChatWindow::onClientConnected(NetworkError success, Peer& newPeer){
