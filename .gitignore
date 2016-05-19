@@ -25,6 +25,9 @@ ui_*.h
 Makefile*
 *build-*
 **build/*
+**/build/*
+**/target/*
+**target/*
 
 # QtCreator
 

@@ -25,10 +25,21 @@ RequestResponder::~RequestResponder()
 void RequestResponder::respond(){
     FILE* requestedFile;
     if(mHttpStatus == HttpStatus::OK){
-        requestedFile = fopen(mHeaderList->at(0).getValue().c_str(), "r");
+        // somehow only works this way
+        std::string sPath = mHeaderList->at(0).getValue();
+        char const* path = sPath.c_str();
+        struct stat fileStatus;
 
-        if(requestedFile == NULL)
+        if(stat(path, &fileStatus) < 0){
             mHttpStatus = HttpStatus::NOT_FOUND;
+            perror("stat failed:");
+        }
+        else {
+            requestedFile = fopen(path, "r");
+            if(requestedFile == NULL)
+                mHttpStatus = HttpStatus::NOT_FOUND;
+        }
+
     }
 
     sendResponseHeader();
