@@ -46,7 +46,7 @@ void sig_handler(int signal){
     closeNetwork();
     exit(0);
 }
-//python "../../ws test/testWebserver.py" localhost 2047
+
 NetworkError poll(){
     if(mServerSocket < 0)
         return NetworkError::BAD_SOCKET;
@@ -83,6 +83,9 @@ NetworkError server(int argc, char *argv[]){
     if(setsockopt(mServerSocket, SOL_SOCKET, SO_REUSEADDR, &enableAddressReuse, sizeof(enableAddressReuse)) < 0)
         return NetworkError::SET_SOCK_OPT_FAILED;
 
+    if(setsockopt(mServerSocket, SOL_SOCKET, SO_ACCEPTCONN, &enableAddressReuse, sizeof(enableAddressReuse)) < 0)
+        return NetworkError::SET_SOCK_OPT_FAILED;
+
     if(bind(mServerSocket, (struct sockaddr *) &serverStruct, sizeof(serverStruct)) < 0)
         return NetworkError::BIND_FAILED;
 
@@ -100,6 +103,9 @@ int main(int argc, char *argv[])
 {
     // handle sigint
     signal(SIGINT, sig_handler);
+
+    // ignore sigpipes. 10/10
+    signal(SIGPIPE, SIG_IGN);
 
     // start server
     switch(server(argc, argv)) {

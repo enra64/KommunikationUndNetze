@@ -9,9 +9,11 @@
 #include <thread>
 #include <netinet/in.h>
 #include <poll.h>
+#include <stdio.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/sendfile.h>
 
 enum struct HttpStatus{
     BAD_SOCKET,

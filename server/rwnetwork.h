@@ -9,14 +9,16 @@
 #include <sys/types.h>
 
 struct Network {
-    static int sendAll(int socket, const char *buf, int len){
+    static int sendAll(int socket, const char *buf, int len, bool& pipeBroken){
         int sentBytes = 0, bytesLeftToSend = len, tempBytesSent;
 
         while(sentBytes < len) {
             // send, ignoring client-side closed connections
             tempBytesSent = send(socket, buf+sentBytes, bytesLeftToSend, MSG_NOSIGNAL);
-            if (tempBytesSent == EPIPE || tempBytesSent < 0)
+            if (tempBytesSent == EPIPE || tempBytesSent <= 0){
+                pipeBroken = true;
                 break;
+            }
             sentBytes += tempBytesSent;
             bytesLeftToSend -= tempBytesSent;
         }
@@ -24,8 +26,14 @@ struct Network {
         return tempBytesSent == -1 ? -1 : 0; // return -1 on failure, 0 on success
     }
 
+    static bool socketOpen(int socket){
+        char buf[1];
+        return recv(socket, buf, 1, 1) > 0;
+    }
+
     static bool sendFile(FILE* file, int socket, char* buffer, int bufferLength)    {
         int readSize = 0;
+        bool pipeBroken = false;
 
         // write while we read complete pages out of the buffer
         while(!feof(file) && ferror(file) == 0) {
@@ -33,12 +41,12 @@ struct Network {
             readSize = fread(buffer, 1, bufferLength, file);
 
             // try to send everything in that buffer
-            if(sendAll(socket, buffer, readSize) < 0)
+            if(sendAll(socket, buffer, readSize, pipeBroken) < 0)
                 return false;
         }
 
         // success if file error bit not set
-        return ferror(file) == 0;
+        return !pipeBroken && ferror(file) == 0;
     }
 
     static bool readUntil(
