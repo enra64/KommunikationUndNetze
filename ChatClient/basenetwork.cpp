@@ -69,6 +69,7 @@ void BaseNetwork::checkForNewClients(struct pollfd structs[], int clientCount){
             static Peer p(clientSocket);
             clientConnected(NetworkError::ERROR_NO_ERROR, p);
             mClients->push_back(Peer(p));
+
         }
     }
 }
@@ -162,8 +163,9 @@ NetworkError BaseNetwork::server(const QString){
     return (NetworkError) -1;
 }
 
-int BaseNetwork::send(const QString msg){
-    char* msgData = msg.toLatin1().data();
+int BaseNetwork::send(const Message m){
+    char msgData[m.getDataLength()];
+    m.getData();
     int sentData;
     switch(mConnectionState){
         case ConnectionState::CLIENT:

@@ -23,20 +23,36 @@ RequestResponder::~RequestResponder()
 }
 
 void RequestResponder::respond(){
-    FILE* requestedFile;
-    if(mHttpStatus == HttpStatus::OK){
-        requestedFile = fopen(mHeaderList->at(0).getValue().c_str(), "r");
+    FILE* requestedFile = NULL;
+    struct stat fileStatus;
 
-        if(requestedFile == NULL)
+    if(mHttpStatus == HttpStatus::OK){
+        // somehow only works this way
+        std::string sPath = mHeaderList->at(0).getValue();
+        char const* path = sPath.c_str();
+
+        if(stat(path, &fileStatus) < 0){
             mHttpStatus = HttpStatus::NOT_FOUND;
+            //perror("stat failed");
+        }
+        else {
+            requestedFile = fopen(path, "r");
+            if(requestedFile == NULL)
+                mHttpStatus = HttpStatus::NOT_FOUND;
+        }
     }
 
     sendResponseHeader();
+
     if(mHttpStatus == HttpStatus::OK){
-        Network::sendFile(requestedFile, mClientSocket, mBuffer, sizeof(mBuffer));
-        fclose(requestedFile);
+        int fd = fileno(requestedFile);
+        if(fd >= 0)
+            sendfile(mClientSocket, fd, 0, fileStatus.st_size);
+        //Network::sendFile(requestedFile, mClientSocket, mBuffer, sizeof(mBuffer));
     }
 
+    if(requestedFile != NULL)
+        fclose(requestedFile);
     close(mClientSocket);
 }
 
@@ -60,6 +76,9 @@ void RequestResponder::sendResponseHeader()
             header = "HTTP/1.0 404 NOT FOUND\r\n\r\n";
             break;
     }
-    if(Network::sendAll(mClientSocket, header.data(), header.length()) < 0)
+    bool pipeBroken = false;
+    if(Network::sendAll(mClientSocket, header.data(), header.length(), pipeBroken) < 0){
         cout << "header could not be sent" << endl;
+        mHttpStatus = HttpStatus::BAD_SOCKET;
+    }
 }
