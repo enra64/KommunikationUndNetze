@@ -19,7 +19,9 @@ SOURCES += main.cpp\
     lownetwork.cpp \
     highnetwork.cpp \
     message.cpp \
-    peer.cpp
+    peer.cpp \
+    newmessage.cpp \
+    clientregistrationmessage.cpp
 
 HEADERS  += chatwindow.h \
     cnaiapi.h \
@@ -28,7 +30,9 @@ HEADERS  += chatwindow.h \
     highnetwork.h \
     compilerdistractor.h \
     message.h \
-    peer.h
+    peer.h \
+    newmessage.h \
+    clientregistrationmessage.h
 
 LIBS += -L"$$_PRO_FILE_PWD_/" -lcnaiapi64
 

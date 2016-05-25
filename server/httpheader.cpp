@@ -40,6 +40,7 @@ bool HttpHeader::parseCompleteHeader(std::string& header, std::vector<HttpHeader
     bool pathParsingSuccess = true;
     while((delimiterPosition = header.find("\r\n")) != std::string::npos){
         std::string line = header.substr(0, delimiterPosition);
+        std::cout << line << std::endl;
         if(line.find("GET ") == 0)
             headerList.push_back(HttpHeader("GET", parsePath(line, pathParsingSuccess)));
         else

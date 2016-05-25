@@ -26,11 +26,6 @@ struct Network {
         return tempBytesSent == -1 ? -1 : 0; // return -1 on failure, 0 on success
     }
 
-    static bool socketOpen(int socket){
-        char buf[1];
-        return recv(socket, buf, 1, 1) > 0;
-    }
-
     static bool sendFile(FILE* file, int socket, char* buffer, int bufferLength)    {
         int readSize = 0;
         bool pipeBroken = false;

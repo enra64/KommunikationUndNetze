@@ -41,7 +41,7 @@ class BaseNetwork : public QObject
 public:
     explicit BaseNetwork(QObject *parent = 0);
     int closeNetwork();
-    int send(const QString msg);
+    int send(const Message m);
     virtual NetworkError server(const QString port);
     virtual NetworkError client(const QString host, const QString port);
     ConnectionState getConnectionState();

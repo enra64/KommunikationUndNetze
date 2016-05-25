@@ -33,7 +33,7 @@ void RequestResponder::respond(){
 
         if(stat(path, &fileStatus) < 0){
             mHttpStatus = HttpStatus::NOT_FOUND;
-            perror("stat failed");
+            //perror("stat failed");
         }
         else {
             requestedFile = fopen(path, "r");
@@ -46,9 +46,9 @@ void RequestResponder::respond(){
 
     if(mHttpStatus == HttpStatus::OK){
         int fd = fileno(requestedFile);
-        //if(fd >= 0 && Network::socketOpen(mClientSocket))
-        //    sendfile(mClientSocket, fd, 0, fileStatus.st_size);
-        Network::sendFile(requestedFile, mClientSocket, mBuffer, sizeof(mBuffer));
+        if(fd >= 0)
+            sendfile(mClientSocket, fd, 0, fileStatus.st_size);
+        //Network::sendFile(requestedFile, mClientSocket, mBuffer, sizeof(mBuffer));
     }
 
     if(requestedFile != NULL)

@@ -10,6 +10,14 @@ public:
     Peer(int socket);
     Peer();
 
+    inline Peer createAllPeer(){
+        return Peer(0);
+    }
+
+    inline bool isAllPeer(){
+        return mSocket == 0;
+    }
+
     inline int getSocket(){
         return mSocket;
     }

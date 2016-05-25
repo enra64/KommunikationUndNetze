@@ -83,9 +83,6 @@ NetworkError server(int argc, char *argv[]){
     if(setsockopt(mServerSocket, SOL_SOCKET, SO_REUSEADDR, &enableAddressReuse, sizeof(enableAddressReuse)) < 0)
         return NetworkError::SET_SOCK_OPT_FAILED;
 
-    if(setsockopt(mServerSocket, SOL_SOCKET, SO_ACCEPTCONN, &enableAddressReuse, sizeof(enableAddressReuse)) < 0)
-        return NetworkError::SET_SOCK_OPT_FAILED;
-
     if(bind(mServerSocket, (struct sockaddr *) &serverStruct, sizeof(serverStruct)) < 0)
         return NetworkError::BIND_FAILED;
 
