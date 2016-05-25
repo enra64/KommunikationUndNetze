@@ -23,7 +23,7 @@ public:
 public slots:
     void onClientConnected(NetworkError success, Peer& newPeer);
     void onDisconnect(Peer name, int remainingConnections);
-    void onMessageReceived(Message msg);
+    void onMessageReceived(DataMessage msg);
     void onNetworkClosed(int status);
 private:
     void print(QString output);

@@ -13,7 +13,7 @@
 #include <netinet/in.h>
 #include <poll.h>
 
-#include "message.h"
+#include "newmessage.h"
 
 enum struct ConnectionState{
     SERVER,
@@ -41,20 +41,22 @@ class BaseNetwork : public QObject
 public:
     explicit BaseNetwork(QObject *parent = 0);
     int closeNetwork();
-    int send(const Message m);
-    virtual NetworkError server(const QString port);
-    virtual NetworkError client(const QString host, const QString port);
+    int send(const QString& msg, const Peer& target);
+    virtual NetworkError server(const QString port) = 0;
+    virtual NetworkError client(const QString host, const QString port) = 0;
     ConnectionState getConnectionState();
 signals:
+    void clientListUpdated(std::vector<Peer> clientList);
     void clientConnected(NetworkError error, Peer& newClient);
     void disconnect(Peer name, int remainingNetworkConnections);
-    void messageReceived(Message msg);
+
+    void messageReceived(DataMessage msg);
     void closed(int status);
 protected slots:
     void onPoll();
 protected:
     ConnectionState mConnectionState = ConnectionState::NOT_SET;
-    QString networkToString(int fd, size_t *receiveLength);
+    QByteArray networkToByteArray(int fd, size_t *receiveLength);
     bool parsePort(const QString port, short& shortPort);
     QFutureWatcher<int> mServerWaitWatcher;
     std::vector<Peer>* mClients;
@@ -66,6 +68,9 @@ protected:
     void checkForNewClients(struct pollfd structs[], int clientCount);
 private:
     QTimer* mTimer;
+    void serverHandleClientRegistration(ClientRegistrationMessage &d);
+    void clientHandleServerData(ServerDataForClientsMessage &d);
+    void handleDataMessage(DataMessage &d);
 };
 
 #endif // BASENETWORK_H

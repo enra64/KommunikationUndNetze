@@ -2,127 +2,217 @@
 #define NEWMESSAGE_H
 
 #include "peer.h"
+#include <stdio.h>
+#include <vector>
+#include <string>
+
 #include <QString>
 
 enum struct PacketType {
     CLIENT_REGISTRATION,
     SERVER_REGISTRATION_ANSWER,
-    MESSAGE
+    DATA
 };
 
 class NewMessage
 {
 public:
-    NewMessage(PacketType packetType){
+    NewMessage(PacketType packetType) : mPacketType(packetType){
 
     }
 
-    virtual const char* getData();
+    virtual char* getOutData() const {
+        return nullptr;
+    }
 
-    virtual const size_t getLength();
-private:
+    virtual size_t getOutDataLength() const {
+        return 0;
+    }
+
+    virtual bool isEmpty() const {
+        return 0 / 1 == 0;
+    }
+
+    inline const Peer& getTarget() const {
+        return mTarget;
+    }
+
+    inline const Peer& getSource() const {
+        return mSource;
+    }
+
+    inline const PacketType& getType() const {
+        return mPacketType;
+    }
+
+protected:
+    /// write an int to a char buffer
+    /// pretty sure this is 300% efficient and does not do 13 copies
+    static QByteArray intToByteArray(int i) {
+        char tmp[5];
+        snprintf(tmp, 5, "%i", i);
+        return QByteArray(tmp, 5);
+    }
+
+protected:
     PacketType mPacketType;
-    Peer mTarget;
+    Peer mTarget, mSource;
 };
 
+/// Message the client sends to the server to make its name known
+/// layout:
+/// first byte: packet type
+/// all other bytes: name
 class ClientRegistrationMessage : public NewMessage
 {
 public:
     ClientRegistrationMessage(QString name) : NewMessage(PacketType::CLIENT_REGISTRATION), mName(name) {
-
     }
 
-    char* getData() override {
-        QByteArray& name = mName.toLatin1().prepend((unsigned char) mName.length()).prepend((unsigned char) mPacketType);
-        return name.data();
+    ClientRegistrationMessage(QByteArray& in) : NewMessage(PacketType::CLIENT_REGISTRATION) {
+        char* data = in.data();
+        mName = QString(data + 1); // pray that it is nullterminated
     }
 
-    const size_t getLength() override {
-        return 2 + mName.length();
+    char* getOutData() const override {
+        QByteArray a;
+        a.append((char) mPacketType);
+        a.append(mName);
+        return a.data();
+    }
+
+    size_t getOutDataLength() const override {
+        return 2 + mName.length(); // null-terminated length + packet type
     }
 
 private:
     QString mName;
 };
 
+
+
+/// Message the server sends to all clients whenever a new client has connected
+/// layout:
+/// first byte: packet type
+/// byte 1 to x: all peers, with the following layout:
+/// socket - name length - name
 class ServerDataForClientsMessage : public NewMessage
 {
 public:
-    ServerDataForClientsMessage(std::vector<Peer>& peers) :
+    ServerDataForClientsMessage(std::vector<Peer> peers) :
         NewMessage(PacketType::SERVER_REGISTRATION_ANSWER),
-        mPeerList(peers){
-
+        mPeerList(peers) {
     }
 
-    const char* getData() override {
+    ServerDataForClientsMessage(QByteArray& in) : NewMessage(PacketType::SERVER_REGISTRATION_ANSWER) {
+        char* data = in.data();
+        char* end = data + in.length();
+        mPeerList = std::vector<Peer>();
+        // ignore message type
+        data++;
+        // does this look spooky to you? it is.
+        while(data < end){
+            // read socket, increase pointer
+            int socket = atoi(data);
+            data += 5;
+
+            // read name length, increase pointer
+            int nameLength = atoi(data);
+            data += 5;
+
+            // read name, increase pointer
+            QString name (data);
+            data += nameLength + 1;
+
+            // save new client
+            mPeerList.push_back(Peer(name, socket));
+        }
+    }
+
+    std::vector<Peer> getPeerList(){
+        return mPeerList;
+    }
+
+    char* getOutData() const override {
         QByteArray a;
-        char intBuf[4];
+        a.append((char) mPacketType);
         for(Peer p : mPeerList){
-            snprintf(intBuf, 4, "%d", p.getName().length());
-            a.append(intBuf, 4);
-
+            a.append(intToByteArray(p.getSocket()));
+            a.append(intToByteArray(p.getName().size()));
             a.append(p.getName());
-
-            snprintf(intBuf, 4, "%d", p.getSocket());
-            a.append(intBuf, 4);
         }
         return a.data();
     }
 
-    const size_t getLength() override {
-        size_t len;
+    size_t getOutDataLength() const override {
+        size_t len = 1;
         for(Peer p : mPeerList)
-            len += 8 + p.getName().length();
+            len +=  5 + // peer socket
+                    5 + // name length
+                    p.getName().size() + 1; // null-terminated length
         return len;
     }
 
     std::vector<Peer> mPeerList;
 };
 
+
+
+/// Message sent by server or client when data shall be transmitted
+/// layout:
+/// first byte: pkt type
+/// byte 1 to 5: source socket (null terminated itoa int)
+/// byte 6 to 10: target socket (null terminated itoa int)
+/// byte 11 to x: data
 class DataMessage : public NewMessage
 {
 public:
-    DataMessage(QString data, Peer source) :
-        mData(data),
-        mSource(source) {
-        mHasTarget = false;
-    }
-
     DataMessage(QString data, Peer source, Peer target) :
-        mData(data),
-        mSource(source),
-        mTarget(target){
-        mHasTarget = true;
+        NewMessage(PacketType::DATA),
+        mData(data) {
+        mSource = source;
+        mTarget = target;
     }
 
-    inline bool hasTarget(){
-        return mHasTarget;
+    DataMessage(QByteArray& in) : NewMessage(PacketType::DATA){
+        char* data = in.data();
+        // ignore message type
+        data++;
+        mSource = atoi(data);
+        data += 5;
+
+        mTarget = atoi(data);
+        data += 5;
+
+        mData = QString(data);
     }
 
-    const char* getData() override {
-
+    const QString& getMessage() const {
+        return mData;
     }
 
-    const size_t getLength() override {
-
+    char* getOutData() const override {
+        QByteArray data;
+        data.append((char) mPacketType);
+        data.append(intToByteArray(mSource.getSocket()));
+        data.append(intToByteArray(mTarget.getSocket()));
+        data.append(mData);
+        return data.data();
     }
 
-    inline int length()
-    {
-        return mData.length();
+    size_t getOutDataLength() const override {
+        return
+                1 + // packet type
+                5 + // source socket
+                5 + // target socket
+                mData.length() + 1; // null terminated
     }
 
-    inline bool isEmpty()
-    {
-        return mData.isEmpty();
-    }
+    inline int length() { return mData.length(); }
+    inline bool isEmpty() { return mData.isEmpty(); }
 
 private:
     QString mData;
-    Peer mSource;
-    bool mHasTarget = false;
 };
-
-
 
 #endif // NEWMESSAGE_H

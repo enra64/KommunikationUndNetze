@@ -47,12 +47,12 @@ bool BaseNetwork::parsePort(const QString port, short& shortPort){
     return portIsInt;
 }
 
-QString BaseNetwork::networkToString(int fd, size_t* rLength){
+QByteArray BaseNetwork::networkToByteArray(int fd, size_t* rLength){
     size_t readLength = read(fd, mBuffer, sizeof(mBuffer));
     mBuffer[readLength] = '\0';
     if(rLength != nullptr)
         *rLength = readLength;
-    return QString(mBuffer);
+    return QByteArray(mBuffer);
 }
 
 void BaseNetwork::checkForNewClients(struct pollfd structs[], int clientCount){
@@ -72,6 +72,15 @@ void BaseNetwork::checkForNewClients(struct pollfd structs[], int clientCount){
 
         }
     }
+}
+
+
+void BaseNetwork::serverHandleClientRegistration(ClientRegistrationMessage& d){
+
+}
+
+void BaseNetwork::clientHandleServerData(ServerDataForClientsMessage& d){
+    emit clientListUpdated(d.get);
 }
 
 void BaseNetwork::onPoll(){
@@ -100,13 +109,14 @@ void BaseNetwork::onPoll(){
                 return;
             }
 
+            // handle incoming messages
             for(size_t i = 0; i < clientCount; i++){
                 if(structs[i].revents & POLLIN){
                     // create message object on stack
-                    Message m(networkToString(structs[i].fd, nullptr), mClients->at(i));
+                    QByteArray in = networkToByteArray(structs[i].fd, nullptr);
 
                     // if the message is empty, we know a dc happened
-                    if(m.isEmpty()){
+                    if(in.isEmpty()){
                         // gracefully close socket
                         close(structs[i].fd);
                         // notify lib user
@@ -114,9 +124,17 @@ void BaseNetwork::onPoll(){
                         // remove peer from list
                         mClients->erase(mClients->begin() + i);
                     }
-                    else
-                        // copy our message to the lib user
-                        emit messageReceived(m);
+
+                    switch((PacketType) in.at(0)){
+                        case PacketType::CLIENT_REGISTRATION:{
+
+                        break;}
+                        case PacketType::DATA:{
+                            emit messageReceived(DataMessage(in));
+                        break;}
+                    default:
+                        break;
+                    }
                 }
             }
 
@@ -132,16 +150,24 @@ void BaseNetwork::onPoll(){
                 emit disconnect(Peer("Server", mServerSocketHandle), 0);
                 closeNetwork();
             }
-            else if(pollingStruct[0].revents & POLLIN){// yes we can
-                // create new message
-                Message m(networkToString(pollingStruct[0].fd, nullptr), Peer("Server", mServerSocketHandle));
+            else if(pollingStruct[0].revents & POLLIN){
+                QByteArray data = networkToByteArray(pollingStruct[0].fd, nullptr);
 
-                //message valid?
-                if(!m.isEmpty())
-                    emit messageReceived(m);
-                else{
+                if(data.length() == 0){
                     emit disconnect(Peer("Server", mServerSocketHandle), 0);
                     closeNetwork();
+                }
+
+                switch((PacketType) data.at(0)){
+                    case PacketType::SERVER_REGISTRATION_ANSWER:{
+                        ServerDataForClientsMessage sdfcm(data);
+                        clientHandleServerData(sdfcm);
+                        break;}
+                    case PacketType::DATA:
+                        emit messageReceived(DataMessage(data));
+                        break;
+                    default:
+                        break;
                 }
             }
         }
@@ -150,28 +176,22 @@ void BaseNetwork::onPoll(){
     }
 }
 
-NetworkError BaseNetwork::client(const QString, const QString){
-    return (NetworkError) -1;
-}
-
 ConnectionState BaseNetwork::getConnectionState()
 {
     return mConnectionState;
 }
 
-NetworkError BaseNetwork::server(const QString){
-    return (NetworkError) -1;
-}
-
-int BaseNetwork::send(const Message m){
-    char msgData[m.getDataLength()];
-    m.getData();
+int BaseNetwork::send(const QString &msg, const Peer &target){
+    DataMessage d(msg, target, target);
+    char* msgData = d.getOutData();
     int sentData;
+
     switch(mConnectionState){
         case ConnectionState::CLIENT:
         sentData = write(mServerSocketHandle, msgData, msg.length());
         if(sentData != msg.length())
             return -1;
+        delete msgData;
         return 0;
     case ConnectionState::SERVER:
         for(Peer p : *mClients){
@@ -179,6 +199,7 @@ int BaseNetwork::send(const Message m){
             if(sentData != msg.length())
                 return -1;
         }
+        delete msgData;
         return 0;
     case ConnectionState::NOT_SET:
     case ConnectionState::NO_CONNECTION:

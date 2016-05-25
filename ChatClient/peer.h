@@ -10,19 +10,19 @@ public:
     Peer(int socket);
     Peer();
 
-    inline Peer createAllPeer(){
-        return Peer(0);
+    inline bool isSelfPeer(int socket) const {
+        return mSocket == socket;
     }
 
-    inline bool isAllPeer(){
+    inline bool isAllPeer() const {
         return mSocket == 0;
     }
 
-    inline int getSocket(){
+    inline int getSocket() const {
         return mSocket;
     }
 
-    inline QString getName(){
+    inline QString getName() const {
         return mName;
     }
 

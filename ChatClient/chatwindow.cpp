@@ -47,9 +47,9 @@ void ChatWindow::onDisconnect(Peer peer, int remainingConnections)
         notify("Server still running, 0 clients.");
 }
 
-void ChatWindow::onMessageReceived(Message msg)
+void ChatWindow::onMessageReceived(DataMessage msg)
 {
-    print(msg.getSender().getName() + ": " + msg.getMessage());
+    print(msg.getSource().getName() + ": " + msg.getMessage());
 }
 
 void ChatWindow::onNetworkClosed(int status)
@@ -91,7 +91,7 @@ void ChatWindow::closeNetworkWithUi()
 void ChatWindow::on_sendButton_clicked()
 {
     const QString sendText = ui->sendText->text();
-    if(mNetwork->send(sendText) < 0)
+    if(mNetwork->send(sendText, Peer(0)) < 0)
         error("'" + sendText + "' could not be sent");
     else
         print("You: " + sendText);
