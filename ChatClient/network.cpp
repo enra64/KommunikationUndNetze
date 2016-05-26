@@ -111,10 +111,10 @@ void Server::onPoll() {
     return;
 }
 
-void Server::checkForNewClients(pollfd structs[], int clientCount)
+void Server::checkForNewClients(pollfd structs[], size_t structLength)
 {
     // check for new clients now that we cant fuck up the vector anymore
-    if(structs[clientCount].revents & POLLIN){
+    if(structs[structLength].revents & POLLIN){
         struct sockaddr_in clientStruct;
         unsigned int clientLength = sizeof(clientStruct);
         int clientSocket = accept(mServerSocketHandle, (struct sockaddr *) &clientStruct, &clientLength);

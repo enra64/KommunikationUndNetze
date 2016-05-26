@@ -2,8 +2,10 @@
 #define NETWORK_H
 
 #include <QByteArray>
+#include <QtConcurrent/QtConcurrent>
 
 #include "peer.h"
+#include "newmessage.h"
 
 #include <vector>
 
@@ -34,6 +36,9 @@ protected:
     /// buffer for all operations requiring a c-style buffer
     char mBuffer[1024];
 
+    /// QTimer for onPoll
+    QTimer* mTimer;
+
 signals:
     /// Called whenever a data message has been received
     virtual void received(const DataMessage& d) = 0;
@@ -61,10 +66,20 @@ signals:
     void received(const DataMessage &d) override;
     void peerListUpdated(std::vector<Peer> peerList) override;
     void networkClosed(int status) override;
-private slots:
+protected slots:
     void onPoll() override;
 private:
-    void checkForNewClients(struct pollfd structs[], int clientCount);
+    /// list of current clients
+    std::vector<Peer>* mClients;
+
+    /// socket handle in use for server
+    int mServerSocketHandle;
+
+    /// port we are listening on
+    short mPort;
+
+    /// checks for new clients
+    void checkForNewClients(struct pollfd structs[], size_t structLength);
 };
 
 /// Client class implementing the network interface
@@ -79,8 +94,16 @@ signals:
     void received(const DataMessage &d) override;
     void peerListUpdated(std::vector<Peer> peerList) override;
     void networkClosed(int status) override;
-private slots:
+
+protected slots:
     void onPoll() override;
+
+private:
+    /// port we are listening on
+    short mPort;
+
+    /// host we are using
+    long mHost;
 };
 
 #endif // NETWORK_H

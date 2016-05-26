@@ -26,7 +26,6 @@ protected slots:
     void onAccept();
 private:
     int asyncWaitForClients(struct sockaddr* clientStruct);
-    int mZeroLengthMsgCount = 0;
     connection waitAsServer();
 };
 
