@@ -7,6 +7,11 @@
 #include "peer.h"
 #include "newmessage.h"
 
+#include <netinet/in.h>
+#include <poll.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+
 #include <vector>
 
 class Network : public QObject {
@@ -23,10 +28,24 @@ public:
     /// Send the datamessage
     virtual int send(const DataMessage& d) = 0;
 
-    /// Create a data message and send it
-    virtual int send(const QString& m, const Peer& target) = 0;
+    /// send to all peers
+    explicit inline int send(const QString& m) {
+        return send(m, Peer::getAllPeer());
+    }
+
+    /// send to specific peer
+    explicit inline int send(const QString &m, const Peer &target) {
+        return send(DataMessage(m, Peer(getNetworkId()), target));
+    }
+
 
 protected:
+    /// send ignoring sigpipe
+    explicit int noSignalSend(int socket, char* data, size_t dataLength);
+
+    /// reports the id representing the network object
+    virtual int getNetworkId() = 0;
+
     /// Reads network input to a byte array
     explicit QByteArray readNetwork(int fd, size_t* receiveLength);
 
@@ -39,6 +58,10 @@ protected:
     /// QTimer for onPoll
     QTimer* mTimer;
 
+protected slots:
+    /// Called every x ms to give the network time to react
+    virtual void onPoll() = 0;
+
 signals:
     /// Called whenever a data message has been received
     virtual void received(const DataMessage& d) = 0;
@@ -48,10 +71,6 @@ signals:
 
     /// Called when the network has been closed
     virtual void networkClosed(int status) = 0;
-
-protected slots:
-    /// Called every x ms to give the network time to react
-    virtual void onPoll() = 0;
 };
 
 /// Server class implementing the network interface
@@ -60,23 +79,30 @@ class Server : public Network {
 public:
     int closeNetwork() override;
     int send(const DataMessage &d) override;
-    int send(const QString& m, const Peer& target) override;
 
 signals:
     void received(const DataMessage &d) override;
     void peerListUpdated(std::vector<Peer> peerList) override;
     void networkClosed(int status) override;
+
+protected:
+    /// reports the id representing the network object
+    int getNetworkId() override {
+        return mServerSocketHandle;
+    }
+
 protected slots:
     void onPoll() override;
+
 private:
     /// list of current clients
     std::vector<Peer>* mClients;
 
     /// socket handle in use for server
-    int mServerSocketHandle;
+    int mServerSocketHandle = -1;
 
     /// port we are listening on
-    short mPort;
+    short mPort = -1;
 
     /// checks for new clients
     void checkForNewClients(struct pollfd structs[], size_t structLength);
@@ -88,22 +114,36 @@ class Client : public Network {
 public:
     int closeNetwork() override;
     int send(const DataMessage &d) override;
-    int send(const QString& m, const Peer& target) override;
 
 signals:
     void received(const DataMessage &d) override;
     void peerListUpdated(std::vector<Peer> peerList) override;
     void networkClosed(int status) override;
 
+protected:
+    /// reports the id representing the network object
+    inline int getNetworkId() override {
+        return mNetworkId;
+    }
+
 protected slots:
     void onPoll() override;
 
 private:
     /// port we are listening on
-    short mPort;
+    short mPort = -1;
 
     /// host we are using
-    long mHost;
+    long mHost = -1;
+
+    /// id the server knows us as
+    int mNetworkId = -1;
+
+    /// our socket
+    int mClientSocket = -1;
+
+    /// convert a string to a long address
+    bool getHostAddress(const QString hostName, long& address);
 };
 
 #endif // NETWORK_H

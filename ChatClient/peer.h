@@ -6,12 +6,29 @@
 class Peer
 {
 public:
-    Peer(QString name, int socket);
-    Peer(int socket);
-    Peer();
+    Peer(){
+        mIsValid = false;
+    }
+
+    Peer(int socket):
+        mSocket(socket) {
+        mName = QString("The Client using Socket %1").arg(socket);
+    }
+
+    Peer(QString name, int socket) :
+        mSocket(socket),
+        mName(name) {
+
+    }
+
+
 
     inline bool isSelfPeer(int socket) const {
         return mSocket == socket;
+    }
+
+    inline Peer getAllPeer() const {
+        return Peer(0);
     }
 
     inline bool isAllPeer() const {
@@ -27,7 +44,7 @@ public:
     }
 
 private:
-    bool mIsValid;
+    bool mIsValid = true;
     int mSocket;
     QString mName;
 };

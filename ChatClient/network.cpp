@@ -16,6 +16,20 @@ Network::Network(QObject *parent) : QObject(parent) {
 
 }
 
+int Network::noSignalSend(int socket, char *data, size_t dataLength)
+{
+    errno = 0;
+    switch(send(socket, data, dataLength, MSG_NOSIGNAL)){
+        case -1:
+            return -1;
+        default:
+            if(errno == EPIPE)
+                success = -2;
+            else
+                return 0;
+    }
+}
+
 QByteArray Network::readNetwork(int fd, size_t *receiveLength) {
     size_t readLength = read(fd, mBuffer, sizeof(mBuffer));
     mBuffer[readLength] = '\0';
@@ -40,15 +54,48 @@ bool Network::parsePort(const QString &port, short &port) {
  *
  */
 int Server::closeNetwork() {
+    int errCount = 0;
+    bool networkWasConnected = mServerSocketHandle != 0;
 
+    for(Peer p : *mClients)
+        if(close(p.getSocket()) < 0)
+            errCount--;
+
+    if(close(mServerSocketHandle) < 0)
+        errCount--;
+
+    // emit signal if network was ever connected
+    if(networkWasConnected)
+        emit networkClosed(errCount);
+
+    delete mClients;
+    mServerSocketHandle = -1;
+    mPort = -1;
+
+    return errCount;
 }
 
 int Server::send(const DataMessage &d) {
+    char* msgData = d.getOutData();
 
-}
 
-int Server::send(const QString &m, const Peer &target) {
+    // send to all
+    if(d.getTarget().isAllPeer())
+        for(size_t i = mClients->size() - 1; i >= 0; i--)
+            if(noSignalSend(p.getSocket(), msgData, d.getOutDataLength()) != 0)
+                mClients->erase(mClients->begin() + i);
 
+    // only send to one peer
+    else
+        if(noSignalSend(d.getTarget(), msgData, d.getOutDataLength()) != 0)
+            //...
+            myList.erase(
+                std::remove_if(myList.begin(), myList.end(), [](const Peer& p) { return p.getSocket() == d.getTarget().getSocket(); }), myList.end());
+
+    // free memory
+    delete[] msgData;
+
+    return success;
 }
 
 void Server::onPoll() {
@@ -141,15 +188,46 @@ void Server::checkForNewClients(pollfd structs[], size_t structLength)
  *
  */
 int Client::closeNetwork() {
+    int errCount = 0;
+    bool networkWasConnected = mClientSocket != -1;
 
+    // close socket
+    errCount += close(mClientSocket);
+
+    // emit signal if network was ever connected
+    if(networkWasConnected)
+        emit networkClosed(errCount);
+
+    mClientSocket = -1;
+    mHost = -1;
+    mPort = -1;
+    mNetworkId = -1;
+
+    return errCount;
 }
 
 int Client::send(const DataMessage &d) {
+    // get data
+    char* msgData = d.getOutData();
 
-}
+    // ignore all previous errors
+    errno = 0;
 
-int Client::send(const QString &m, const Peer &target) {
+    switch(send(mClientSocket, msgData, d.getOutDataLength(), MSG_NOSIGNAL)){
+        case -1:
+            success = -1;
+            break;
+        case EPIPE:
+        default:
+            success = 0;
+            if(errno == EPIPE)
+                success = -2;
+    }
 
+    // free memory
+    delete[] msgData;
+
+    return success;
 }
 
 void Client::onPoll() {
@@ -180,4 +258,18 @@ void Client::onPoll() {
             break;
         }
     }
+}
+
+bool Client::getHostAddress(const QString hostName, long& address){
+    struct hostent * host;
+    struct in_addr h_addr;
+
+    host = gethostbyname(hostName.toStdString().c_str());
+
+    if(host == NULL)
+        return false;
+
+    h_addr.s_addr = *((unsigned long *) host -> h_addr_list[0]);
+    address = *((long *) host -> h_addr_list[0]);
+    return true;
 }
