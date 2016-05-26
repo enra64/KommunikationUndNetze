@@ -63,6 +63,8 @@ signals:
     void networkClosed(int status) override;
 private slots:
     void onPoll() override;
+private:
+    void checkForNewClients(struct pollfd structs[], int clientCount);
 };
 
 /// Client class implementing the network interface
