@@ -4,9 +4,7 @@
 #include <QMainWindow>
 #include <QCloseEvent>
 
-#include "highnetwork.h"
-#include "lownetwork.h"
-#include "basenetwork.h"
+#include "network.h"
 
 
 namespace Ui {
@@ -21,23 +19,56 @@ public:
     explicit ChatWindow(QWidget *parent = 0);
     ~ChatWindow();
 public slots:
-    void onClientConnected(NetworkError success, Peer& newPeer);
-    void onDisconnect(Peer name, int remainingConnections);
-    void onMessageReceived(DataMessage msg);
+    /// Called whenever a data message has been received
+    void onReceive(const DataMessage& d);
+
+    /// Called whenever a peer has been added or removed
+    void onPeerListUpdate(std::vector<Peer> peerList, std::vector<Peer>, int sizeDiffSize);
+
+    /// Called when the network has been closed
     void onNetworkClosed(int status);
+
 private:
+    /// standard output method
     void print(QString output);
+
+    /// warn of error in chat window
     void error(QString errorDescription);
+
+    /// notify user in chat window
     void notify(QString msg);
+
+
     void connectionStatus(bool connectionOk);
+
+
     void setSendingUiEnabled(bool enable);
+
+    /// set connection ui (connect, open server, port, host) state
     void setConnectionUiEnabled(bool enable);
+
+    /// get the currently selected peer
+    const Peer& getActivePeer();
+
+    /// reference to our ui object
     Ui::ChatWindow *ui;
-    BaseNetwork* mNetwork = nullptr;
+
+    /// currently used network system
+    Network* mNetwork = nullptr;
+
+    /// no idea
     void closeNetworkWithUi();
+
+    /// catch close event to close network correctly
     void closeEvent(QCloseEvent *bar);
-    void loadNetwork(bool kn);
+
+    /// either load the server or the client system
+    NetworkError& loadNetwork(bool isServer);
+
     QTimer* mTimer;
+
+    std::vector<Peer> mPeerList;
+
 private slots:
     void on_sendButton_clicked();
     void on_clientConnectButton_clicked();
@@ -45,8 +76,6 @@ private slots:
     void on_sendText_returnPressed();
     void on_sendText_textChanged(const QString &arg1);
     void on_disconnectButton_clicked();
-    void on_knApiRadio_toggled(bool checked);
-    void on_unixApiRadio_toggled(bool checked);
 };
 
 #endif // CHATWINDOW_H

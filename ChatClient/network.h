@@ -6,13 +6,30 @@
 
 #include "peer.h"
 #include "newmessage.h"
+#include "compilerdistractor.h"
 
 #include <netinet/in.h>
 #include <poll.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <netdb.h>          /* hostent struct, gethostbyname() */
 
 #include <vector>
+
+enum struct NetworkError{
+    ERROR_NO_ERROR,
+    PORT_NO_INTEGER,
+    AWAIT_CONTACT_FAILED,
+    BIND_FAILED,
+    LISTEN_FAILED,
+    ACCEPT_FAILED,
+    SOCKET_FAILED,
+    CONTACT_FAILED,
+    HOST_NOT_RESOLVED,
+    MAKE_CONTACT_FAILED
+};
 
 class Network : public QObject {
     Q_OBJECT
@@ -26,31 +43,33 @@ public:
     virtual int closeNetwork() = 0;
 
     /// Send the datamessage
-    virtual int send(const DataMessage& d) = 0;
+    virtual int send_(const NewMessage& d) = 0;
 
     /// send to all peers
-    explicit inline int send(const QString& m) {
-        return send(m, Peer::getAllPeer());
+    inline int send_(const QString& m) {
+        return send_(m, Peer::getAllPeer());
     }
 
     /// send to specific peer
-    explicit inline int send(const QString &m, const Peer &target) {
-        return send(DataMessage(m, Peer(getNetworkId()), target));
+    inline int send_(const QString &m, const Peer &target) {
+        return send_(DataMessage(m, Peer(getNetworkId()), target));
     }
 
+    /// uses the network signal to
+    void emitClientDiffList(const std::vector<Peer> &oldPeers, const std::vector<Peer> &newPeers);
 
 protected:
     /// send ignoring sigpipe
-    explicit int noSignalSend(int socket, char* data, size_t dataLength);
+    int noSignalSend(int socket, char* data, size_t dataLength);
 
     /// reports the id representing the network object
     virtual int getNetworkId() = 0;
 
     /// Reads network input to a byte array
-    explicit QByteArray readNetwork(int fd, size_t* receiveLength);
+    QByteArray readNetwork(int fd);
 
     /// Parse a qstring to a port short
-    explicit bool parsePort(const QString& port, short& port);
+    bool parsePort(const QString& portIn, short& portOut);
 
     /// buffer for all operations requiring a c-style buffer
     char mBuffer[1024];
@@ -64,26 +83,26 @@ protected slots:
 
 signals:
     /// Called whenever a data message has been received
-    virtual void received(const DataMessage& d) = 0;
+    void received(const DataMessage& d);
 
     /// Called whenever a peer has been added or removed
-    virtual void peerListUpdated(std::vector<Peer> peerList) = 0;
+    void peerListUpdated(std::vector<Peer> peerList, std::vector<Peer> removedPeerList, int sizeDiffSize);
 
     /// Called when the network has been closed
-    virtual void networkClosed(int status) = 0;
+    void networkClosed(int status);
 };
 
 /// Server class implementing the network interface
 class Server : public Network {
     Q_OBJECT
 public:
+    Server(const QString& port, NetworkError &result, QObject *parent = 0);
     int closeNetwork() override;
-    int send(const DataMessage &d) override;
+    int send_(const NewMessage &d) override;
 
 signals:
-    void received(const DataMessage &d) override;
-    void peerListUpdated(std::vector<Peer> peerList) override;
-    void networkClosed(int status) override;
+    void received(const DataMessage &d);
+    void networkClosed(int status);
 
 protected:
     /// reports the id representing the network object
@@ -112,13 +131,13 @@ private:
 class Client : public Network {
     Q_OBJECT
 public:
+    explicit Client(const QString &host, const QString &port, NetworkError &result, QObject *parent = 0);
     int closeNetwork() override;
-    int send(const DataMessage &d) override;
+    int send_(const NewMessage &d) override;
 
 signals:
-    void received(const DataMessage &d) override;
-    void peerListUpdated(std::vector<Peer> peerList) override;
-    void networkClosed(int status) override;
+    void received(const DataMessage &d);
+    void networkClosed(int status);
 
 protected:
     /// reports the id representing the network object
@@ -141,6 +160,9 @@ private:
 
     /// our socket
     int mClientSocket = -1;
+
+    /// save old peer list
+    std::vector<Peer> mPeerList;
 
     /// convert a string to a long address
     bool getHostAddress(const QString hostName, long& address);

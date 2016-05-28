@@ -16,7 +16,7 @@
   <widget class="QWidget" name="centralWidget">
    <layout class="QGridLayout" name="gridLayout">
     <item row="0" column="3">
-     <layout class="QVBoxLayout" name="rightPane" stretch="0,0,0,0,0,0,0">
+     <layout class="QVBoxLayout" name="rightPane" stretch="0,0,0,0,0">
       <item>
        <widget class="QTextBrowser" name="chatHistory"/>
       </item>
@@ -95,31 +95,6 @@
          <widget class="QPushButton" name="disconnectButton">
           <property name="text">
            <string>Disconnect</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
-      <item>
-       <widget class="QLabel" name="networkRadioLabel">
-        <property name="text">
-         <string>Network interface</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <layout class="QHBoxLayout" name="networkRadioLayout">
-        <item>
-         <widget class="QRadioButton" name="unixApiRadio">
-          <property name="text">
-           <string>Direct Unix API</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QRadioButton" name="knApiRadio">
-          <property name="text">
-           <string>KN API</string>
           </property>
          </widget>
         </item>

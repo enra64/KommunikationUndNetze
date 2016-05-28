@@ -15,18 +15,12 @@ CONFIG += c++11
 
 SOURCES += main.cpp\
         chatwindow.cpp \
-    basenetwork.cpp \
-    lownetwork.cpp \
-    highnetwork.cpp \
     peer.cpp \
     newmessage.cpp \
     network.cpp
 
 HEADERS  += chatwindow.h \
     cnaiapi.h \
-    basenetwork.h \
-    lownetwork.h \
-    highnetwork.h \
     compilerdistractor.h \
     peer.h \
     newmessage.h \

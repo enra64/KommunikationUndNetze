@@ -27,7 +27,7 @@ public:
         return mSocket == socket;
     }
 
-    inline Peer getAllPeer() const {
+    static inline Peer getAllPeer() {
         return Peer(0);
     }
 
