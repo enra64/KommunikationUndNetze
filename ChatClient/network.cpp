@@ -216,7 +216,6 @@ void Server::onPoll() {
             switch((PacketType) in.at(0)) {
             case PacketType::CLIENT_REGISTRATION: {
                 send_(ServerDataForClientsMessage(*mClients));
-
                 break;
             }
             case PacketType::DATA: {
@@ -259,7 +258,7 @@ void Server::checkForNewClients(pollfd structs[], size_t structLength) {
  *
  *
  */
-Client::Client(const QString& host, const QString& port, NetworkError& result, QObject *parent) : Network(parent)
+Client::Client(const QString& host, const QString& port, const QString& name, NetworkError& result, QObject *parent) : Network(parent)
 {
     bool validPort;
     short shortport = port.toShort(&validPort);
@@ -289,6 +288,8 @@ Client::Client(const QString& host, const QString& port, NetworkError& result, Q
         result = NetworkError::CONTACT_FAILED;
         return;
     }
+
+    send_(ClientRegistrationMessage(name));
 
     result = NetworkError::ERROR_NO_ERROR;
 }
@@ -333,7 +334,7 @@ int Client::send_(const NewMessage &d) {
     }
 
     // free memory
-    delete[] msgData;
+    delete msgData;
 
     return success;
 }

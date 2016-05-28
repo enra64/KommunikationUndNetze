@@ -7,7 +7,7 @@ ChatWindow::ChatWindow(QWidget *parent) :
     ui->setupUi(this);
 
     setSendingUiEnabled(false);
-    setConnectionUiEnabled(false);
+    setConnectionUiEnabled(true);
     ui->disconnectButton->setEnabled(false);
 }
 
@@ -53,6 +53,7 @@ void ChatWindow::onReceive(const DataMessage& msg) {
 
 void ChatWindow::onNetworkClosed(int status) {
     connectionStatus(false);
+    mPeerList.clear();
     if(status < 0)
         error("Could not close network");
     else
@@ -62,7 +63,6 @@ void ChatWindow::onNetworkClosed(int status) {
 void ChatWindow::connectionStatus(bool connectionOk) {
     setSendingUiEnabled(connectionOk);
     setConnectionUiEnabled(!connectionOk);
-    //ui->disconnectButton->setEnabled(connectionOk);
 }
 
 void ChatWindow::setSendingUiEnabled(bool enable) {
@@ -190,6 +190,7 @@ NetworkError& ChatWindow::loadNetwork(bool isServer) {
     // kill old networking solution
     if(mNetwork != nullptr) {
         mNetwork->closeNetwork();
+        mPeerList.clear();
         delete mNetwork;
     }
 
@@ -198,7 +199,7 @@ NetworkError& ChatWindow::loadNetwork(bool isServer) {
     if(isServer)
         mNetwork = new Server(ui->portText->text(), result, this);
     else
-        mNetwork = new Client(ui->hostText->text(), ui->portText->text(), result, this);
+        mNetwork = new Client(ui->hostText->text(), ui->portText->text(), ui->nameEdit->text(), result, this);
 
     QObject::connect(mNetwork, SIGNAL(received(DataMessage)), this, SLOT(onReceive(DataMessage)));
     QObject::connect(mNetwork, SIGNAL(peerListUpdated(std::vector<Peer>,std::vector<Peer>,int)), this, SLOT(onPeerListUpdate(std::vector<Peer>,std::vector<Peer>,int)));

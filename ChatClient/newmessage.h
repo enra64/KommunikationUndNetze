@@ -78,7 +78,8 @@ public:
         QByteArray a;
         a.append((char) mPacketType);
         a.append(mName);
-        return a.data();
+        static char* outData = a.data();
+        return outData;
     }
 
     size_t getOutDataLength() const override {

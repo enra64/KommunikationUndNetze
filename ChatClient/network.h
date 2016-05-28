@@ -131,7 +131,7 @@ private:
 class Client : public Network {
     Q_OBJECT
 public:
-    explicit Client(const QString &host, const QString &port, NetworkError &result, QObject *parent = 0);
+    explicit Client(const QString &host, const QString &port, const QString &name, NetworkError &result, QObject *parent = 0);
     int closeNetwork() override;
     int send_(const NewMessage &d) override;
 
