@@ -92,7 +92,8 @@ void ChatWindow::closeNetworkWithUi() {
 
 void ChatWindow::on_sendButton_clicked() {
     const QString sendText = ui->sendText->text();
-    if(mNetwork->send_(sendText, getActivePeer()) < 0)
+    Peer target = mPeerList.size() == 0 ? Peer::getServerPeer() : getActivePeer();
+    if(mNetwork->send_(sendText, target) < 0)
         error("'" + sendText + "' could not be sent");
     else
         print("You: " + sendText);

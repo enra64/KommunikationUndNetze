@@ -48,7 +48,7 @@ private:
     void setConnectionUiEnabled(bool enable);
 
     /// get the currently selected peer
-    const Peer& getActivePeer();
+    const Peer &getActivePeer();
 
     /// reference to our ui object
     Ui::ChatWindow *ui;

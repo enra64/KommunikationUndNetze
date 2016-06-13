@@ -21,18 +21,24 @@ public:
 
     }
 
-
-
     inline bool isSelfPeer(int socket) const {
         return mSocket == socket;
     }
 
-    static inline Peer getAllPeer() {
+    static inline const Peer getAllPeer() {
         return Peer(0);
+    }
+
+    static inline const Peer getServerPeer(){
+        return Peer(-12);
     }
 
     inline bool isAllPeer() const {
         return mSocket == 0;
+    }
+
+    inline bool isServerPeer() const {
+        return mSocket == -12;
     }
 
     inline int getSocket() const {

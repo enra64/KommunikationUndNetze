@@ -136,13 +136,13 @@ int Server::closeNetwork() {
 }
 
 int Server::send_(const NewMessage &d) {
-    char* msgData = d.getOutData();
+    QByteArray* msgData = d.getOutData();
     int errCount = 0;
 
     // send to all
     if(d.getTarget().isAllPeer()) {
         for(int i = mClients->size() - 1; i >= 0; i--) {
-            if(Network::noSignalSend(mClients->at(i).getSocket(), msgData, d.getOutDataLength()) != 0) {
+            if(Network::noSignalSend(mClients->at(i).getSocket(), msgData->data(), msgData->length()) != 0) {
                 mClients->erase(mClients->begin() + i);
                 errCount--;
             }
@@ -151,7 +151,7 @@ int Server::send_(const NewMessage &d) {
     // only send to one peer
     else {
         const int targetSocket = d.getTarget().getSocket();
-        if(Network::noSignalSend(targetSocket, msgData, d.getOutDataLength()) != 0) {
+        if(Network::noSignalSend(targetSocket, msgData->data(), msgData->length()) != 0) {
             // remove the client that just failed to send
             auto iterator = std::remove_if(
                                 mClients->begin(),
@@ -165,7 +165,7 @@ int Server::send_(const NewMessage &d) {
     }
 
     // free memory
-    delete[] msgData;
+    delete msgData;
 
     return errCount;
 }
@@ -315,14 +315,14 @@ int Client::closeNetwork() {
 
 int Client::send_(const NewMessage &d) {
     // get data
-    char* msgData = d.getOutData();
+    QByteArray* msgData = d.getOutData();
     int success = 0;
 
     // ignore all previous errors
     errno = 0;
 
 
-    switch(send(mClientSocket, msgData, d.getOutDataLength(), MSG_NOSIGNAL)) {
+    switch(send(mClientSocket, msgData->data(), msgData->length(), MSG_NOSIGNAL)) {
     case -1:
         success = -1;
         break;

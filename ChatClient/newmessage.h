@@ -21,16 +21,10 @@ public:
 
     }
 
-    virtual char* getOutData() const {
-        return nullptr;
-    }
-
-    virtual size_t getOutDataLength() const {
-        return 0;
-    }
+    virtual QByteArray* getOutData() const = 0;
 
     virtual bool isEmpty() const {
-        return 0 / 1 == 0;
+        return true;
     }
 
     inline const Peer& getTarget() const {
@@ -74,16 +68,15 @@ public:
         mName = QString(data + 1); // pray that it is nullterminated
     }
 
-    char* getOutData() const override {
-        QByteArray a;
-        a.append((char) mPacketType);
-        a.append(mName);
-        static char* outData = a.data();
-        return outData;
+    QByteArray* getOutData() const override {
+        QByteArray* a = new QByteArray();
+        a->append((char) mPacketType);
+        a->append(mName);
+        return a;
     }
 
-    size_t getOutDataLength() const override {
-        return 2 + mName.length(); // null-terminated length + packet type
+    bool isEmpty() const {
+        return mName.isEmpty();
     }
 
 private:
@@ -130,28 +123,23 @@ public:
         }
     }
 
+    bool isEmpty() const {
+        return mPeerList.empty();
+    }
+
     std::vector<Peer> getPeerList(){
         return mPeerList;
     }
 
-    char* getOutData() const override {
-        QByteArray a;
-        a.append((char) mPacketType);
+    QByteArray* getOutData() const override {
+        QByteArray* a = new QByteArray;
+        a->append((char) mPacketType);
         for(Peer p : mPeerList){
-            a.append(intToByteArray(p.getSocket()));
-            a.append(intToByteArray(p.getName().size()));
-            a.append(p.getName());
+            a->append(intToByteArray(p.getSocket()));
+            a->append(intToByteArray(p.getName().size()));
+            a->append(p.getName());
         }
-        return a.data();
-    }
-
-    size_t getOutDataLength() const override {
-        size_t len = 1;
-        for(Peer p : mPeerList)
-            len +=  5 + // peer socket
-                    5 + // name length
-                    p.getName().size() + 1; // null-terminated length
-        return len;
+        return a;
     }
 
     std::vector<Peer> mPeerList;
@@ -192,21 +180,13 @@ public:
         return mData;
     }
 
-    char* getOutData() const override {
-        QByteArray data;
-        data.append((char) mPacketType);
-        data.append(intToByteArray(mSource.getSocket()));
-        data.append(intToByteArray(mTarget.getSocket()));
-        data.append(mData);
-        return data.data();
-    }
-
-    size_t getOutDataLength() const override {
-        return
-                1 + // packet type
-                5 + // source socket
-                5 + // target socket
-                mData.length() + 1; // null terminated
+    QByteArray* getOutData() const override {
+        QByteArray* data = new QByteArray();
+        data->append((char) mPacketType);
+        data->append(intToByteArray(mSource.getSocket()));
+        data->append(intToByteArray(mTarget.getSocket()));
+        data->append(mData);
+        return data;
     }
 
     inline int length() { return mData.length(); }
